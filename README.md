@@ -34,7 +34,7 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
 ---
 
 ## 建置里程碑
-
+1. Milestone 1 - Hello World from Node.js! : 使用Node.js 原生的 http 模組建立 API 伺服器 (Git tag: milestone1)
 ---
 
 ## 開發環境設置

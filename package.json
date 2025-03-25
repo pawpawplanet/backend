@@ -1,0 +1,27 @@
+{
+  "name": "pawpawplanet-backend",
+  "version": "1.0.0",
+  "description": "This is the backend of a platform to connect pet owners with service providers.",
+  "keywords": [
+    "pawpawplanet",
+    "backend",
+    "node.js",
+    "express"
+  ],
+  "homepage": "https://github.com/pawpawplanet/backend#readme",
+  "bugs": {
+    "url": "https://github.com/pawpawplanet/backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pawpawplanet/backend.git"
+  },
+  "license": "MIT",
+  "author": "PawPaw Planet",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch src/server.js"
+  }
+}
