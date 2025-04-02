@@ -64,19 +64,20 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
    npm run dev - 啟動開發伺服器
    ```
 
-2. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:8080`）
+2. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:PORT`）
     ```bash
-   http://localhost:8080/api - 在 Postman 收到 response 'Hello World from Node.js!' 
+   http://localhost:PORT/api - 在 Postman 收到 response 'Hello World from Node.js!' 
    ```
 
 ---
 
 ## 環境變數設定 
 
-請在專案根目錄建立 `.env` 檔案，並填入設定值 (.env包含機敏資料，預設已加入 .gitignore)： 
+請參考.env.example，在專案根目錄建立 `.env` 檔案，並填入設定值 (.env包含機敏資料，預設已加入 .gitignore)： 
 
 ```env
-** 補上 **
+PORT=...
+...
 ```
 
 ---
@@ -94,9 +95,13 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
 ```
 📦 
 ├── 📂 src
+|── |── 📂 config      # 設定檔目錄
+|   |   |── index.js   # 設定檔管理器
+|   |   |── web.js     # web 伺服器設定
 │   ├── server.js      # 伺服器啟動檔
 │   └── ...
 ├── 📂 docs            # API 文件
+|── .env.example       # 環境變數設定檔案 .env 的參考檔案
 ├── package.json       # Node.js 依賴與指令
 └── README.md          # 本文件
 ```

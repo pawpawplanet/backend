@@ -1,4 +1,5 @@
 const http = require("http");
+const config = require('./config/index') 
 
 const server = http.createServer(function(request,response){
     response.setHeader('Content-Type', 'application/json');
@@ -18,6 +19,7 @@ const server = http.createServer(function(request,response){
     }
 })
 
-server.listen(8080, () => {
-    console.log(`伺服器運作中 @ http://localhost:8080`);
+const port = config.get('web.port')
+server.listen(port, () => {
+    console.log(`伺服器運作中 @ http://localhost:${port}`);
 });
