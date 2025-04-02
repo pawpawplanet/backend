@@ -1,25 +1,34 @@
-const http = require("http");
-const config = require('./config/index') 
+const express = require('express');
+const cors = require('cors')
+const app = express();
+const config = require('./config/index')
 
-const server = http.createServer(function(request,response){
-    response.setHeader('Content-Type', 'application/json');
-    response.setHeader('charset', 'utf-8');
-    console.log('request.url: ', request.url)
-    if (request.method === 'GET' && request.url === '/api') {
-        response.writeHead(200);
-        response.end(JSON.stringify({ 
-            message: "Hello World from Node.js!",
-            status: "success"
-        }));
-    } else {
-        response.writeHead(404);
-        response.end(JSON.stringify({
-            error: "Not Found"
-        }));
-    }
-})
+app.use(cors())
+app.use(express.json())
 
+app.use(express.urlencoded({ extended: false }))
+
+// 路由：處理 /api 的 GET 請求
+app.get('/api', (req, res) => {
+    res.json({
+        message: "Hello World from Express!",
+        status: "success"
+    });
+});
+
+// 404： 處理未匹配的路由
+app.use((req, res) => {
+    res.status(404).json({
+        error: "Not Found"
+    });
+});
+
+// 監聽 port
 const port = config.get('web.port')
-server.listen(port, () => {
-    console.log(`伺服器運作中 @ http://localhost:${port}`);
+app.listen(port, () => {
+    try {
+        console.log(`Server is running on http://localhost:${port}`);
+    } catch (error) {
+        process.exit(1)
+    }
 });
