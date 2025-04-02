@@ -26,10 +26,10 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
 本專案採用以下技術架構：
 
 - **Backend:** Node.js + Express.js
-- **Database:** PostgreSQL（使用 Docker 容器
+- **Database:** PostgreSQL（使用 Docker 容器)
 - **ORM:** TypeORM
 - **API 測試:** Postman
-- **開發環境:** Docker
+- **環境:** Docker
 
 ---
 
@@ -55,13 +55,19 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
 2. **建立 `.env` 檔案**（參考 [環境變數設定](#-環境變數設定))
 
 ### **3. 啟動開發環境**
-
-1. **啟動 Backend Server**
+1. **安裝套件**
+    ```bash
+   npm ci - 依據 package-lock.json 版本資訊安裝套件
+   ```
+2. **啟動 Backend Server**
    ```bash
    npm run dev - 啟動開發伺服器
    ```
 
-2. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:3000`） 
+2. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:8080`）
+    ```bash
+   http://localhost:8080/api - 在 Postman 收到 response 'Hello World from Node.js!' 
+   ```
 
 ---
 
