@@ -1,11 +1,9 @@
 const express = require('express');
 const cors = require('cors')
 const app = express();
-const config = require('./config/index')
 
 app.use(cors())
 app.use(express.json())
-
 app.use(express.urlencoded({ extended: false }))
 
 // 路由：處理 /api 的 GET 請求
@@ -23,12 +21,4 @@ app.use((req, res) => {
     });
 });
 
-// 監聽 port
-const port = config.get('web.port')
-app.listen(port, () => {
-    try {
-        console.log(`Server is running on http://localhost:${port}`);
-    } catch (error) {
-        process.exit(1)
-    }
-});
+module.exports = app
