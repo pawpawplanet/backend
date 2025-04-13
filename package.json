@@ -25,8 +25,9 @@
     "dev": "node --watch src/bin/www.js"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "pg": "^8.14.1"
   }
 }
