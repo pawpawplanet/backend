@@ -4,10 +4,10 @@ const dotenv = require('dotenv')
 if (process.env.NODE_ENV !== 'production') {
   const result = dotenv.config()
   if (result.error) {
-    throw result.error
+    
+    console.warn('[Warning] Failed to load .env:', result.error)
   }
 }
-
 const web = require('./web')
 const db = require('./db')
 
