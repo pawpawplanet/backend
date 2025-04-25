@@ -179,56 +179,65 @@ async function getProfile(req, res, next) {
   }
 }
 
-async function postProfile(req, res, next) {
+async function postOwnerProfile(req, res, next) {
   try {
-    const { id } = req.user
-    const { name } = req.body
-    if (isUndefined(name) || isNotValidSting(name)) {
-      logger.warn('欄位未填寫正確')
-      res.status(400).json({
+    const { id } = req.user // token
+    if (!req.body) {
+      return res.status(400).json({
         status: 'failed',
-        message: '欄位未填寫正確'
-      })
-      return
+        message: '請提供資料'
+      });
     }
-    const userRepository = dataSource.getRepository('User')
-    const user = await userRepository.findOne({
-      select: ['name'],
-      where: {
-        id
-      }
+    const { name, city, area, phone, description, avatar } = req.body
+
+    const profileRepository = dataSource.getRepository('User')
+    const existingProfile = await profileRepository.findOne({
+      where: { id }
     })
-    if (user.name === name) {
-      res.status(400).json({
+
+    if (!req.user) {
+      return res.status(401).json({
         status: 'failed',
-        message: '使用者名稱未變更'
-      })
-      return
+        message: '認證失敗，請確認登入狀態'
+      });
     }
-    const updatedResult = await userRepository.update({
+
+    // if(existingProfile) {
+    //   return res.status(400).json({
+    //     status: 'failed',
+    //     message: '使用者已經有個人資料，請使用更新功能'
+    //   })
+    // }
+
+    const newProfile = profileRepository.create({
       id,
-      name: user.name
-    }, {
-      name
+      name, 
+      city, 
+      area,
+      phone,
+      description,
+      avatar
     })
-    if (updatedResult.affected === 0) {
-      res.status(400).json({
+
+    if (existingProfile.name || existingProfile.city || existingProfile.area || existingProfile.phone || existingProfile.description || existingProfile.avatar) {
+      return res.status(400).json({
         status: 'failed',
-        message: '更新使用者資料失敗'
+        message: '使用者已經有個人資料，請使用更新功能'
       })
-      return
     }
-    const result = await userRepository.findOne({
-      select: ['name'],
-      where: {
-        id
-      }
-    })
-    res.status(200).json({
+     
+    // existingProfile.name = name
+    // existingProfile.city = city
+    // existingProfile.area = area
+    // existingProfile.phone = phone
+    // existingProfile.description = description
+    // existingProfile.avatar = avatar
+
+    const savedProfile = await profileRepository.save(newProfile)
+
+    res.status(201).json({
       status: 'success',
-      data: {
-        user: result
-      }
+      data: { savedProfile }
     })
   } catch (error) {
     logger.error('取得使用者資料錯誤:', error)
@@ -236,10 +245,21 @@ async function postProfile(req, res, next) {
   }
 }
 
-async function putProfile(req, res, next) {
+async function patchOwnerProfile(req, res, next) {
   try {
     const { id } = req.user
-    const { name } = req.body
+    const { name, city, area, phone, description, avatar } = req.body
+
+    const userRepository = dataSource.getRepository('User')
+    const result = await userRepository.findOne({ where: { id } })
+
+    if (!result) {
+      return res.status(404).json({
+        status: 'failed',
+        message: '使用者不存在'
+      })
+    }
+
     if (isUndefined(name) || isNotValidSting(name)) {
       logger.warn('欄位未填寫正確')
       res.status(400).json({
@@ -248,43 +268,42 @@ async function putProfile(req, res, next) {
       })
       return
     }
-    const userRepository = dataSource.getRepository('User')
-    const user = await userRepository.findOne({
-      select: ['name'],
-      where: {
-        id
-      }
-    })
-    if (user.name === name) {
-      res.status(400).json({
+
+
+    if (result.name === name &&
+      result.city === city &&
+      result.area === area &&
+      result.phone === phone &&
+      result.description === description &&
+      result.avatar === avatar
+    ) {
+      return res.status(400).json({
         status: 'failed',
-        message: '使用者名稱未變更'
+        message: '沒有任何欄位被變更'
       })
-      return
     }
-    const updatedResult = await userRepository.update({
-      id,
-      name: user.name
-    }, {
-      name
-    })
-    if (updatedResult.affected === 0) {
-      res.status(400).json({
-        status: 'failed',
-        message: '更新使用者資料失敗'
-      })
-      return
-    }
-    const result = await userRepository.findOne({
-      select: ['name'],
-      where: {
-        id
-      }
-    })
+
+    if (name !== undefined) result.name = name;
+    if (city !== undefined) result.city = city;
+    if (area !== undefined) result.area = area;
+    if (phone !== undefined) result.phone = phone;
+    if (description !== undefined) result.description = description;
+    if (avatar !== undefined) result.avatar = avatar;
+
+    const updatedUser = await userRepository.save(result)
+
+    // if (updatedResult.affected === 0) {
+    //   res.status(400).json({
+    //     status: 'failed',
+    //     message: '更新使用者資料失敗'
+    //   })
+    //   return
+    // }
+    
     res.status(200).json({
       status: 'success',
       data: {
-        user: result
+        user: updatedUser 
       }
     })
   } catch (error) {
@@ -374,8 +393,8 @@ module.exports = {
   postSignup,
   postLogin,
   //getProfile,
-
-  //putProfile,
+  postOwnerProfile,
+  patchOwnerProfile,
   //putPassword,
 
 };
