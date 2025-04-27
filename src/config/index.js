@@ -1,17 +1,27 @@
-// dotenv.config() 會讀取 .env 檔案的內容，並將變數加到 process.env 中。
-// 必須確保 dotenv.config() 在 任何需要使用環境變數的程式碼之前被執行。
 const dotenv = require('dotenv')
-const result = dotenv.config()
+
+// 僅在非 production 環境時才載入 .env 檔案
+if (process.env.NODE_ENV !== 'production') {
+  const result = dotenv.config()
+  if (result.error) {
+    
+    console.warn('[Warning] Failed to load .env:', result.error)
+  }
+}
 const web = require('./web')
 const db = require('./db')
 
-if (result.error && process.env.NODE_ENV !== 'production') {
-  throw result.error
+
+
+const secret = {
+  jwtSecret: process.env.JWT_SECRET || 'default_secret_key', // 如果沒有 .env 變數，使用預設值
+  jwtExpiresDay: process.env.JWT_EXPIRES_DAY || 7
 }
 
 const config = {
-    web,
-    db
+  web,
+  db,
+  secret
 }
 
 class ConfigManager {
@@ -23,22 +33,17 @@ class ConfigManager {
    * @returns {*} - The configuration value corresponding to the given path.
    * @throws Will throw an error if the configuration path is not found.
    */
-
   static get (path) {
     if (!path || typeof path !== 'string') {
       throw new Error(`incorrect path: ${path}`)
     }
     const keys = path.split('.')
     let configValue = config
-    // console.log('=== config : ', config)
-    // console.log('=== configValue : ', configValue)
     keys.forEach((key) => {
       if (!Object.prototype.hasOwnProperty.call(configValue, key)) {
         throw new Error(`config ${path} not found`)
       }
       configValue = configValue[key]
-      // console.log('key : ', key)
-      // console.log('configValue : ', configValue)
     })
     return configValue
   }

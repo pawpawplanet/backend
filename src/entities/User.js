@@ -1,8 +1,7 @@
 const { EntitySchema } = require('typeorm')
-
 module.exports = new EntitySchema({
   name: 'User',
-  tableName: 'USER',
+  tableName: 'Users',
   columns: {
     id: {
       primary: true,
@@ -15,16 +14,55 @@ module.exports = new EntitySchema({
       nullable: false,
       unique: true
     },
-    role: {
-      type: 'varchar',
-      length: 20,
-      nullable: false
-    },
     password: {
       type: 'varchar',
       length: 72,
       nullable: false,
       select: false
+    },
+    // default_role: {
+    //   type: 'varchar',
+    //   length: 20,
+    //   nullable: true
+    // },
+    role: {
+      type: 'varchar',
+      length: 20,
+      nullable: false
+    },
+    name: {
+      type: 'varchar',
+      length: 20,
+      nullable: true
+    },
+    avatar: {
+      type: 'varchar',
+      length: 255,
+      nullable: true
+    },
+    phone: {
+      type: 'varchar',
+      length: 20,
+      nullable: true
+    },
+    description: {
+      type: 'text',
+      nullable: true
+    },
+    city: {
+      type: 'varchar',
+      length: 20,
+      nullable: true
+    },
+    area: {
+      type: 'varchar',
+      length: 20,
+      nullable: true
+    },
+    is_active: {
+      type: 'boolean',
+      nullable: false,
+      default: true
     },
     created_at: {
       type: 'timestamp',
@@ -38,3 +76,4 @@ module.exports = new EntitySchema({
     }
   }
 })
+
