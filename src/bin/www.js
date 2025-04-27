@@ -18,17 +18,17 @@ function onError (error) {
     : `Port ${port}`
   // handle specific listen errors
   switch (error.code) {
-    case 'EACCES':
-        console.log(`${bind} requires elevated privileges`)
-        process.exit(1)
-        break
-    case 'EADDRINUSE':
-        console.log(`${bind} is already in use`)
-        process.exit(1)
-        break
-    default:
-        console.log(`exception on ${bind}: ${error.code}`)
-        process.exit(1)
+  case 'EACCES':
+    console.log(`${bind} requires elevated privileges`)
+    process.exit(1)
+    break
+  case 'EADDRINUSE':
+    console.log(`${bind} is already in use`)
+    process.exit(1)
+    break
+  default:
+    console.log(`exception on ${bind}: ${error.code}`)
+    process.exit(1)
   }
 }
 server.on('error', onError)
