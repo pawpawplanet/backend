@@ -186,7 +186,7 @@ async function postOwnerProfile(req, res, next) {
       return res.status(400).json({
         status: 'failed',
         message: '請提供資料'
-      });
+      })
     }
     const { name, city, area, phone, description, avatar } = req.body
 
@@ -199,7 +199,7 @@ async function postOwnerProfile(req, res, next) {
       return res.status(401).json({
         status: 'failed',
         message: '認證失敗，請確認登入狀態'
-      });
+      })
     }
 
     // if(existingProfile) {
@@ -283,12 +283,12 @@ async function patchOwnerProfile(req, res, next) {
       })
     }
 
-    if (name !== undefined) result.name = name;
-    if (city !== undefined) result.city = city;
-    if (area !== undefined) result.area = area;
-    if (phone !== undefined) result.phone = phone;
-    if (description !== undefined) result.description = description;
-    if (avatar !== undefined) result.avatar = avatar;
+    if (name !== undefined) result.name = name
+    if (city !== undefined) result.city = city
+    if (area !== undefined) result.area = area
+    if (phone !== undefined) result.phone = phone
+    if (description !== undefined) result.description = description
+    if (avatar !== undefined) result.avatar = avatar
 
     const updatedUser = await userRepository.save(result)
 
@@ -397,4 +397,4 @@ module.exports = {
   patchOwnerProfile,
   //putPassword,
 
-};
+}
