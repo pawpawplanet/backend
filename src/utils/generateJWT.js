@@ -8,11 +8,11 @@ const jwt = require('jsonwebtoken')
  * @returns {String}
  */
 module.exports = (payload, secret, option = {}) => new Promise((resolve, reject) => {
-    jwt.sign(payload, secret, option, (err, token) => {
-        if (err) {
-            reject(err)
-            return
-        }
-        resolve(token)
-    })
+  jwt.sign(payload, secret, option, (err, token) => {
+    if (err) {
+      reject(err)
+      return
+    }
+    resolve(token)
+  })
 })
