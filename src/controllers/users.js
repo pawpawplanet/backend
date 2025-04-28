@@ -164,7 +164,7 @@ async function getProfile(req, res, next) {
     const { id } = req.user
     const userRepository = dataSource.getRepository('User')
     const user = await userRepository.findOne({
-      select: ['name', 'email'],
+      select: ['name', 'email', 'city', 'area', 'phone', 'description', 'avatar', 'role'],
       where: { id }
     })
     res.status(200).json({
@@ -202,12 +202,12 @@ async function postOwnerProfile(req, res, next) {
       });
     }
 
-    // if(existingProfile) {
-    //   return res.status(400).json({
-    //     status: 'failed',
-    //     message: '使用者已經有個人資料，請使用更新功能'
-    //   })
-    // }
+    if(existingProfile) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '使用者已經有個人資料，請使用更新功能'
+      })
+    }
 
     const newProfile = profileRepository.create({
       id,
@@ -389,12 +389,25 @@ async function putPassword(req, res, next) {
 
 
 
+
 module.exports = {
   postSignup,
   postLogin,
-  //getProfile,
+  getProfile,
   postOwnerProfile,
   patchOwnerProfile,
   //putPassword,
+
+  // getServiceReviews
+
+  // PostOrderReviews
+  
+
+  // getService
+
+  // PostOrders
+
+  // PostLogout
+
 
 };

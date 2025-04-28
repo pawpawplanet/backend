@@ -74,6 +74,37 @@ module.exports = new EntitySchema({
       updateDate: true,
       nullable: false
     }
+  },
+  relations: {
+    freelancerProfile: {
+      type: 'one-to-one',
+      target: 'Freelancer',
+      inverseSide: 'user',
+      joinColumn: {
+        name: 'user_id', // 加上這行會更明確
+      },
+      cascade: true,
+    },
+    services: {  // 反向關聯：一個 User 可以有多個 Service
+      type: 'one-to-many',
+      target: 'Service',
+      inverseSide: 'user',
+      joinColumn: {
+        name: 'user_id', // 加上這行會更明確
+      },
+      cascade: true,
+      eager: false,
+    },
+    orders: {  // 反向關聯：一個 User 可以有多個 Order
+      type: 'one-to-many',
+      target: 'Order', // 指向 Order 表
+      inverseSide: 'user', // 反向關聯名稱，這裡是 Order 表中的 user 欄位
+      joinColumn: {
+        name: 'user_id', // 加上這行會更明確
+      },
+      cascade: true,
+      eager: false,
+    },
   }
 })
 

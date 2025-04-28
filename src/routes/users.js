@@ -11,6 +11,9 @@ router.post('/login', users.postLogin)
 // })
 router.post('/profile', authenticateToken, users.postOwnerProfile)
 router.patch('/profile', authenticateToken, users.patchOwnerProfile)
+router.get('/profile', authenticateToken, users.getProfile)
+
+//api/services
 
 
 module.exports = router
