@@ -36,11 +36,10 @@ module.exports = new EntitySchema({
       nullable: true,
     },
 
-    status: {  // 訂單狀態
-      type: 'varchar',
-      length: 20,
-      nullable: false,
-      default: 'pending',  // 預設為待處理
+    status: {
+      type: 'enum',
+      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+      default: 'pending',
     },
 
     did_owner_close_the_order: {  // 是否由雇主關閉訂單
@@ -85,7 +84,7 @@ module.exports = new EntitySchema({
       joinColumn: {
         name: 'user_id',
       },
-      cascade: true,
+      cascade: ['insert', 'update'],
       eager: false,
     },
 
@@ -108,6 +107,14 @@ module.exports = new EntitySchema({
         cascade: true,
         eager: false,
     },
+    review: {
+      type: 'one-to-one',
+      target: 'Review',
+      inverseSide: 'order',  // 與 Review 中的 order 對應
+      cascade: true,
+      eager: false,
+      nullable: true,   
+    }
 
 
   },

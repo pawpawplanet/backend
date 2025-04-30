@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors')
 
 const usersRouter = require('./routes/users')
+const serviceRouter = require('./routes/service')
 
 const app = express();
 app.use(cors())
@@ -13,6 +14,9 @@ app.get('/', (req, res) => {
 })
 app.use('/api/users', usersRouter)
 // 404： 處理未匹配的路由
+
+app.use('/api/service', serviceRouter)
+
 app.use((req, res) => {
     res.status(404).json({
         error: "找不到頁面"

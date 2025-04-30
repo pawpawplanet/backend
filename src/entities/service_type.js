@@ -2,7 +2,7 @@ const { EntitySchema } = require('typeorm')
 
 module.exports = new EntitySchema({
   name: 'ServiceType',
-  tableName: 'ServiceTypes',
+  tableName: 'ServiceType',
 
   columns: {
     id: {
@@ -15,6 +15,7 @@ module.exports = new EntitySchema({
       type: 'varchar',
       length: 100,
       nullable: false,
+      unique: true, 
     },
 
     // description: {

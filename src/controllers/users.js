@@ -18,6 +18,8 @@ function isNotValidSting(value) {
 
 async function postSignup(req, res, next) {
   try {
+
+    console.log("收到前端資料：", req.body);
     const { email, password, confirmPassword, role } = req.body
 
     if (
@@ -79,6 +81,28 @@ async function postSignup(req, res, next) {
     const savedUser = await userRepository.save(newUser)
     logger.info('新建立的使用者ID:', savedUser.id)
 
+    // 如果是 freelancer，就建立 Freelancer profile
+    if (savedUser.role === 'freelancer') {
+      const freelancerRepository = dataSource.getRepository('Freelancer');
+      const newFreelancer = freelancerRepository.create({
+        user: savedUser
+      });
+      await freelancerRepository.save(newFreelancer);
+      logger.info('自動建立 Freelancer 資料成功:', newFreelancer.id);
+    }
+
+    if (savedUser.role === 'owner') {
+      const petRepository = dataSource.getRepository('Pet');
+      const newPet = petRepository.create({
+        owner: savedUser // 這裡會對應到 owner_id
+
+      });
+      await petRepository.save(newPet);
+      logger.info('自動建立 Pet 資料成功:', newPet.id);
+    }
+
+
+
     return res.status(201).json({
       status: 'success',
       data: {
@@ -117,7 +141,7 @@ async function postLogin(req, res, next) {
     }
     const userRepository = dataSource.getRepository('User')
     const existingUser = await userRepository.findOne({
-      select: ['id' , 'password', 'role'],
+      select: ['id', 'password', 'role'],
       where: { email }
     })
 
@@ -202,7 +226,7 @@ async function postOwnerProfile(req, res, next) {
       });
     }
 
-    if(existingProfile) {
+    if (existingProfile) {
       return res.status(400).json({
         status: 'failed',
         message: '使用者已經有個人資料，請使用更新功能'
@@ -211,8 +235,8 @@ async function postOwnerProfile(req, res, next) {
 
     const newProfile = profileRepository.create({
       id,
-      name, 
-      city, 
+      name,
+      city,
       area,
       phone,
       description,
@@ -225,7 +249,7 @@ async function postOwnerProfile(req, res, next) {
         message: '使用者已經有個人資料，請使用更新功能'
       })
     }
-     
+
     // existingProfile.name = name
     // existingProfile.city = city
     // existingProfile.area = area
@@ -270,18 +294,18 @@ async function patchOwnerProfile(req, res, next) {
     }
 
 
-    if (result.name === name &&
-      result.city === city &&
-      result.area === area &&
-      result.phone === phone &&
-      result.description === description &&
-      result.avatar === avatar
-    ) {
-      return res.status(400).json({
-        status: 'failed',
-        message: '沒有任何欄位被變更'
-      })
-    }
+    // if (result.name === name &&
+    //   result.city === city &&
+    //   result.area === area &&
+    //   result.phone === phone &&
+    //   result.description === description &&
+    //   result.avatar === avatar
+    // ) {
+    //   return res.status(400).json({
+    //     status: 'failed',
+    //     message: '沒有任何欄位被變更'
+    //   })
+    // }
 
     if (name !== undefined) result.name = name;
     if (city !== undefined) result.city = city;
@@ -299,11 +323,11 @@ async function patchOwnerProfile(req, res, next) {
     //   })
     //   return
     // }
-    
+
     res.status(200).json({
       status: 'success',
       data: {
-        user: updatedUser 
+        user: updatedUser
       }
     })
   } catch (error) {
@@ -401,7 +425,7 @@ module.exports = {
   // getServiceReviews
 
   // PostOrderReviews
-  
+
 
   // getService
 

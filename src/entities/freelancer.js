@@ -47,7 +47,8 @@ module.exports = new EntitySchema({
       joinColumn: {
         name: 'user_id',
       },
-      cascade: true,
+      onDelete: 'CASCADE',
+      nullable: false,
       eager: false,
     },
     orders: {

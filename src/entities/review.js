@@ -34,12 +34,14 @@ module.exports = new EntitySchema({
 
   relations: {
     order: {
-      type: 'one-to-one',  // ❗ 每張訂單對應一則評價
+      type: 'one-to-one',  // 每張訂單對應一則評價
       target: 'Order',
       joinColumn: {
         name: 'order_id',
       },
       onDelete: 'CASCADE',
+      nullable: false,
+      eager: false,
     },
 
     user: {  // 撰寫評價者（飼主）
@@ -49,6 +51,8 @@ module.exports = new EntitySchema({
         name: 'user_id',
       },
       onDelete: 'CASCADE',
+      nullable: false,
+      eager: false,
     },
 
     freelancer: {  // 被評價的接案者
@@ -58,6 +62,8 @@ module.exports = new EntitySchema({
         name: 'freelancer_id',
       },
       onDelete: 'CASCADE',
+      nullable: false,
+      eager: false,
     },
   },
 });

@@ -10,18 +10,20 @@ module.exports = new EntitySchema({
         generated: 'uuid',
       },
 
-      user_id: {  // 新增 user_id 欄位作為外鍵
+    
+      freelancer_id: {
         type: 'uuid',
-        nullable: false, // 必須指定 user_id
+        nullable: false,  // 必須指定者的時間
       },
+  
 
       
       service_type_id: {  // 新增服務類型外鍵
         type: 'uuid',
         nullable: false,  // 必須指定服務類型
       },
-  
-  
+
+      
   
       enabled: {
         type: 'boolean',
@@ -96,15 +98,15 @@ module.exports = new EntitySchema({
       },
     },
     relations: {
-        user: {
-            type: 'many-to-one', // 每個服務屬於一個用戶
-            target: 'User',      // 目標表為 User
-            joinColumn: {
-              name: 'user_id',   // 使用 user_id 作為外鍵
-            },
-            cascade: true,
-            eager: false,        // 是否在查詢時自動載入 User 資料
+        freelancer: {
+          type: 'many-to-one', // 每個服務屬於一個自由職業者
+          target: 'Freelancer',
+          joinColumn: {
+            name: 'freelancer_id', // 使用 freelancer_id 作為外鍵
           },
+          cascade: ['insert', 'update'],
+          eager: false,
+        },
         
         service_type: {  
           type: 'many-to-one',
