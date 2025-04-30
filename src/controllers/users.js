@@ -205,20 +205,25 @@ async function getProfile(req, res, next) {
 
 async function postOwnerProfile(req, res, next) {
   try {
-    const { id } = req.user // token
+    const { id } = req.user; // 從 token 中取得用戶 id
+
+    // 檢查請求中是否有資料
     if (!req.body) {
       return res.status(400).json({
         status: 'failed',
         message: '請提供資料'
       })
     }
-    const { name, city, area, phone, description, avatar } = req.body
 
-    const profileRepository = dataSource.getRepository('User')
+    const { name, city, area, phone, description, avatar } = req.body;
+
+    // 取得資料庫中的用戶資料
+    const profileRepository = dataSource.getRepository('User');
     const existingProfile = await profileRepository.findOne({
       where: { id }
-    })
+    });
 
+    // 確認用戶已經登入
     if (!req.user) {
       return res.status(401).json({
         status: 'failed',
@@ -226,13 +231,25 @@ async function postOwnerProfile(req, res, next) {
       })
     }
 
+    // 檢查用戶是否已經有資料
     if (existingProfile) {
-      return res.status(400).json({
-        status: 'failed',
-        message: '使用者已經有個人資料，請使用更新功能'
-      })
+      // 如果已有資料，進行更新
+      existingProfile.name = name || existingProfile.name;
+      existingProfile.city = city || existingProfile.city;
+      existingProfile.area = area || existingProfile.area;
+      existingProfile.phone = phone || existingProfile.phone;
+      existingProfile.description = description || existingProfile.description;
+      existingProfile.avatar = avatar || existingProfile.avatar;
+
+      const savedProfile = await profileRepository.save(existingProfile);
+
+      return res.status(200).json({
+        status: 'success',
+        data: savedProfile
+      });
     }
 
+    // 如果沒有資料，創建新資料
     const newProfile = profileRepository.create({
       id,
       name,
@@ -241,31 +258,21 @@ async function postOwnerProfile(req, res, next) {
       phone,
       description,
       avatar
-    })
+    });
 
-    if (existingProfile.name || existingProfile.city || existingProfile.area || existingProfile.phone || existingProfile.description || existingProfile.avatar) {
-      return res.status(400).json({
-        status: 'failed',
-        message: '使用者已經有個人資料，請使用更新功能'
-      })
-    }
-
-    // existingProfile.name = name
-    // existingProfile.city = city
-    // existingProfile.area = area
-    // existingProfile.phone = phone
-    // existingProfile.description = description
-    // existingProfile.avatar = avatar
-
-    const savedProfile = await profileRepository.save(newProfile)
+    const savedProfile = await profileRepository.save(newProfile);
 
     res.status(201).json({
       status: 'success',
-      data: { savedProfile }
-    })
+      data: savedProfile
+    });
   } catch (error) {
-    logger.error('取得使用者資料錯誤:', error)
-    next(error)
+    logger.error('取得使用者資料錯誤:', error);
+    return res.status(500).json({
+      status: 'failed',
+      message: '伺服器錯誤，請稍後再試。',
+      error: error.message
+    });
   }
 }
 

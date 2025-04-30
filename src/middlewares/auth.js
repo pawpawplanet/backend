@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 const config = require('../config/index')
-const logger = require('../utils/logger')
+// 不再使用 logger，改為直接使用 console.warn
+// const logger = require('../utils/logger')
 
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization']
@@ -12,10 +13,11 @@ async function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, config.get('secret.jwtSecret'))
-    req.user = decoded 
+    req.user = decoded
     next()
   } catch (error) {
-    logger.warn('Token 驗證失敗', error)
+    // 使用 console.warn 替代 logger.warn
+    console.warn('Token 驗證失敗', error)
     return res.status(403).json({ status: 'failed', message: 'Token 驗證失敗' })
   }
 }
