@@ -10,13 +10,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 const web = require('./web')
 const db = require('./db')
+const secret = require('./secret')
 
-
-
-const secret = {
-  jwtSecret: process.env.JWT_SECRET || 'default_secret_key', // 如果沒有 .env 變數，使用預設值
-  jwtExpiresDay: process.env.JWT_EXPIRES_DAY || 7
-}
 
 const config = {
   web,

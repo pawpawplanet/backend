@@ -36,8 +36,8 @@ module.exports = new EntitySchema({
       nullable: true
     },
     avatar: {
-      type: 'varchar',
-      length: 255,
+      type: 'text',
+      array: true,
       nullable: true
     },
     phone: {
