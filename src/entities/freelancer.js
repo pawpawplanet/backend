@@ -1,4 +1,4 @@
-const { EntitySchema } = require('typeorm');
+const { EntitySchema } = require('typeorm')
 module.exports = new EntitySchema({
   name: 'Freelancer',
   tableName: 'freelancers',
@@ -15,10 +15,11 @@ module.exports = new EntitySchema({
     },
     
     working_days: {
-      type: 'json', // 例如 ['Monday', 'Tuesday']
-      nullable: true,
+      type: 'varchar',// 例如 ['1', '2']
+      array: true,
+      nullable: true
     },
-    is_weekday_mode: {
+    is_weekly_mode: {
       type: 'boolean',
       default: false,
     },
@@ -27,8 +28,7 @@ module.exports = new EntitySchema({
       nullable: true,
     },
     bank_account: {
-      type: 'varchar',
-      length: 50,
+      type: 'jsonb',
       nullable: true,
     },
     avg_rating: {
@@ -66,4 +66,4 @@ module.exports = new EntitySchema({
     },
 
   },
-});
+})

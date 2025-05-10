@@ -2,7 +2,9 @@ const express = require('express')
 const cors = require('cors')
 
 const usersRouter = require('./routes/users')
+const freelancersRouter = require('./routes/freelancers')
 const serviceRouter = require('./routes/service')
+const uploadRouter = require('./routes/upload')
 
 const app = express()
 app.use(cors())
@@ -13,10 +15,12 @@ app.get('/', (req, res) => {
   res.send('hello world')
 })
 app.use('/api/users', usersRouter)
-// 404： 處理未匹配的路由
+app.use('/api/freelancers', freelancersRouter)
+app.use('/api/upload', uploadRouter)
 
 app.use('/api/services', serviceRouter)
 
+// 404： 處理未匹配的路由
 app.use((req, res) => {
   res.status(404).json({
     error: '找不到頁面'
