@@ -31,6 +31,14 @@ module.exports = new EntitySchema({
       length: 50,
       nullable: true,
     },
+    avg_rating: {
+      type: 'float',
+      default: 0,
+    },
+    review_count: {
+      type: 'int',
+      default: 0,
+    },
     created_at: {
       type: 'timestamp',
       createDate: true,

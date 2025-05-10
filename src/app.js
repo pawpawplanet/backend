@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
 app.use('/api/users', usersRouter)
 // 404： 處理未匹配的路由
 
-app.use('/api/service', serviceRouter)
+app.use('/api/services', serviceRouter)
 
 app.use((req, res) => {
   res.status(404).json({
