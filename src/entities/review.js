@@ -1,4 +1,4 @@
-const { EntitySchema } = require('typeorm');
+const { EntitySchema } = require('typeorm')
 
 module.exports = new EntitySchema({
   name: 'Review',
@@ -66,4 +66,4 @@ module.exports = new EntitySchema({
       eager: false,
     },
   },
-});
+})

@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt') // 用來加密/驗證密碼
-const { IsNull, In } = require('typeorm')
+// const { IsNull, In } = require('typeorm') // fix eslint warnings
 
 const config = require('../config/index')
 const { dataSource } = require('../db/data-source')
@@ -19,7 +19,7 @@ function isNotValidSting(value) {
 async function postSignup(req, res, next) {
   try {
 
-    console.log("收到前端資料：", req.body);
+    console.log('收到前端資料：', req.body)
     const { email, password, confirmPassword, role } = req.body
 
     if (
@@ -83,22 +83,22 @@ async function postSignup(req, res, next) {
 
     // 如果是 freelancer，就建立 Freelancer profile
     if (savedUser.role === 'freelancer') {
-      const freelancerRepository = dataSource.getRepository('Freelancer');
+      const freelancerRepository = dataSource.getRepository('Freelancer')
       const newFreelancer = freelancerRepository.create({
         user: savedUser
-      });
-      await freelancerRepository.save(newFreelancer);
-      logger.info('自動建立 Freelancer 資料成功:', newFreelancer.id);
+      })
+      await freelancerRepository.save(newFreelancer)
+      logger.info('自動建立 Freelancer 資料成功:', newFreelancer.id)
     }
 
     if (savedUser.role === 'owner') {
-      const petRepository = dataSource.getRepository('Pet');
+      const petRepository = dataSource.getRepository('Pet')
       const newPet = petRepository.create({
         owner: savedUser // 這裡會對應到 owner_id
 
-      });
-      await petRepository.save(newPet);
-      logger.info('自動建立 Pet 資料成功:', newPet.id);
+      })
+      await petRepository.save(newPet)
+      logger.info('自動建立 Pet 資料成功:', newPet.id)
     }
 
 
@@ -203,9 +203,10 @@ async function getProfile(req, res, next) {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function postOwnerProfile(req, res, next) {
   try {
-    const { id } = req.user; // 從 token 中取得用戶 id
+    const { id } = req.user // 從 token 中取得用戶 id
 
     // 檢查請求中是否有資料
     if (!req.body) {
@@ -215,13 +216,13 @@ async function postOwnerProfile(req, res, next) {
       })
     }
 
-    const { name, city, area, phone, description, avatar } = req.body;
+    const { name, city, area, phone, description, avatar } = req.body
 
     // 取得資料庫中的用戶資料
-    const profileRepository = dataSource.getRepository('User');
+    const profileRepository = dataSource.getRepository('User')
     const existingProfile = await profileRepository.findOne({
       where: { id }
-    });
+    })
 
     // 確認用戶已經登入
     if (!req.user) {
@@ -234,19 +235,19 @@ async function postOwnerProfile(req, res, next) {
     // 檢查用戶是否已經有資料
     if (existingProfile) {
       // 如果已有資料，進行更新
-      existingProfile.name = name || existingProfile.name;
-      existingProfile.city = city || existingProfile.city;
-      existingProfile.area = area || existingProfile.area;
-      existingProfile.phone = phone || existingProfile.phone;
-      existingProfile.description = description || existingProfile.description;
-      existingProfile.avatar = avatar || existingProfile.avatar;
+      existingProfile.name = name || existingProfile.name
+      existingProfile.city = city || existingProfile.city
+      existingProfile.area = area || existingProfile.area
+      existingProfile.phone = phone || existingProfile.phone
+      existingProfile.description = description || existingProfile.description
+      existingProfile.avatar = avatar || existingProfile.avatar
 
-      const savedProfile = await profileRepository.save(existingProfile);
+      const savedProfile = await profileRepository.save(existingProfile)
 
       return res.status(200).json({
         status: 'success',
         data: savedProfile
-      });
+      })
     }
 
     // 如果沒有資料，創建新資料
@@ -258,21 +259,21 @@ async function postOwnerProfile(req, res, next) {
       phone,
       description,
       avatar
-    });
+    })
 
-    const savedProfile = await profileRepository.save(newProfile);
+    const savedProfile = await profileRepository.save(newProfile)
 
     res.status(201).json({
       status: 'success',
       data: savedProfile
-    });
+    })
   } catch (error) {
-    logger.error('取得使用者資料錯誤:', error);
+    logger.error('取得使用者資料錯誤:', error)
     return res.status(500).json({
       status: 'failed',
       message: '伺服器錯誤，請稍後再試。',
       error: error.message
-    });
+    })
   }
 }
 
@@ -343,6 +344,7 @@ async function patchOwnerProfile(req, res, next) {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function putPassword(req, res, next) {
   try {
     const { id } = req.user
@@ -441,4 +443,4 @@ module.exports = {
   // PostLogout
 
 
-};
+}
