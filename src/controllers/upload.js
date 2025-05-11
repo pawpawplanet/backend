@@ -31,6 +31,7 @@ const upload = multer({
 //可接收任意數量的檔案
 const uploadMutiMiddleware = upload.any()
 //可接收多張圖片
+// eslint-disable-next-line no-unused-vars
 async function postMutiUploadImage(req, res, next) {
   const files = req.files
   if (!files || files.length === 0) {
@@ -87,6 +88,7 @@ async function postMutiUploadImage(req, res, next) {
 }
 
 //只能接收一張圖片
+// eslint-disable-next-line no-unused-vars
 async function postUploadImage(req, res, next) {
   const file = req.file
   if (!file) {

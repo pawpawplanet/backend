@@ -22,8 +22,8 @@ module.exports = new EntitySchema({
     },
 
     freelancer_id: {  // 外鍵：指向 `Service`
-        type: 'uuid',
-        nullable: false,
+      type: 'uuid',
+      nullable: false,
     },
 
     service_date: {  // 服務日期
@@ -99,13 +99,13 @@ module.exports = new EntitySchema({
     },
 
     freelancer: {
-        type: 'many-to-one',
-        target: 'Freelancer',
-        joinColumn: {
-          name: 'freelancer_id',
-        },
-        cascade: true,
-        eager: false,
+      type: 'many-to-one',
+      target: 'Freelancer',
+      joinColumn: {
+        name: 'freelancer_id',
+      },
+      cascade: true,
+      eager: false,
     },
     review: {
       type: 'one-to-one',

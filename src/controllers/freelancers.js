@@ -1,4 +1,4 @@
-const { P } = require('pino')
+// const { P } = require('pino') // fix eslint warnings
 const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('FreelancersController')
 
@@ -62,7 +62,7 @@ async function postFreelancerProfile(req, res, next) {
     const freelancerRepo = dataSource.getRepository('Freelancer')
 
     const existingUser = await userRepo.findOne({ where: { id } })
-    const existingFreelancer = await freelancerRepo.findOne({ where: { user_id: id } })
+    // const existingFreelancer = await freelancerRepo.findOne({ where: { user_id: id } }) // fix eslint warnings
 
     if (!req.user) {
       return res.status(401).json({
