@@ -2,7 +2,7 @@ const { EntitySchema } = require('typeorm')
 
 module.exports = new EntitySchema({
   name: 'Order',
-  tableName: 'Orders',
+  tableName: 'orders',
 
   columns: {
     id: {
@@ -11,7 +11,12 @@ module.exports = new EntitySchema({
       generated: 'uuid',
     },
 
-    user_id: {  // 外鍵：指向 `User`
+    // user_id: {  // 外鍵：指向 `User`
+    //   type: 'uuid',
+    //   nullable: false,
+    // },
+
+    owner_id: {  // 外鍵：指向 `User`
       type: 'uuid',
       nullable: false,
     },
@@ -21,13 +26,23 @@ module.exports = new EntitySchema({
       nullable: false,
     },
 
-    freelancer_id: {  // 外鍵：指向 `Service`
+    freelancer_id: {  // 外鍵：指向 `Freelancer`
       type: 'uuid',
       nullable: false,
     },
 
+    pet_id: {
+      type: 'uuid',
+      nullable: false
+    },
+
+    // service_date: {  // 服務日期
+    //   type: 'timestamp',
+    //   nullable: false,
+    // },
+
     service_date: {  // 服務日期
-      type: 'timestamp',
+      type: 'date',
       nullable: false,
     },
 
@@ -36,10 +51,16 @@ module.exports = new EntitySchema({
       nullable: true,
     },
 
+    // status: {
+    //   type: 'enum',
+    //   enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+    //   default: 'pending',
+    // },
+
     status: {
-      type: 'enum',
-      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-      default: 'pending',
+      type: 'smallint', // 0 pending, 1 accepted, 2 paid, 3 rejected, 4 cancelled, 5 expired 6 completed
+      nullable: false,
+      default: 0,
     },
 
     did_owner_close_the_order: {  // 是否由雇主關閉訂單
@@ -59,10 +80,15 @@ module.exports = new EntitySchema({
       nullable: false,
     },
 
+    // price_unit: {  // 訂單金額單位
+    //   type: 'varchar',
+    //   length: 20,
+    //   nullable: true,
+    // },
+
     price_unit: {  // 訂單金額單位
-      type: 'varchar',
-      length: 20,
-      nullable: true,
+      type: 'varchar', // 每次1小時(散步) | 每天8小時(到府照顧和日托) | 每項服務每次(美容)
+      nullable: false,
     },
 
     created_at: {
@@ -78,15 +104,35 @@ module.exports = new EntitySchema({
   },
 
   relations: {
-    user: {  // `Order` 和 `User` 之間的關聯
+    // user: {  // `Order` 和 `User` 之間的關聯
+    //   type: 'many-to-one',
+    //   target: 'User',
+    //   joinColumn: {
+    //     name: 'user_id',
+    //   },
+    //   cascade: ['insert', 'update'],
+    //   eager: false,
+    // },
+
+    owner: {  // `Order` 和 `User` 之間的關聯
       type: 'many-to-one',
       target: 'User',
       joinColumn: {
-        name: 'user_id',
+        name: 'owner_id', // 這是 Order 資料表中的欄位名稱
+        referencedColumnName: 'id'  // 預設就是這個
       },
-      cascade: ['insert', 'update'],
       eager: false,
     },
+
+    // service: {  // `Order` 和 `Service` 之間的關聯
+    //   type: 'many-to-one',
+    //   target: 'Service',
+    //   joinColumn: {
+    //     name: 'service_id',
+    //   },
+    //   cascade: true,
+    //   eager: false,
+    // },
 
     service: {  // `Order` 和 `Service` 之間的關聯
       type: 'many-to-one',
@@ -94,9 +140,18 @@ module.exports = new EntitySchema({
       joinColumn: {
         name: 'service_id',
       },
-      cascade: true,
       eager: false,
     },
+
+    // freelancer: {
+    //   type: 'many-to-one',
+    //   target: 'Freelancer',
+    //   joinColumn: {
+    //     name: 'freelancer_id',
+    //   },
+    //   cascade: true,
+    //   eager: false,
+    // },
 
     freelancer: {
       type: 'many-to-one',
@@ -104,9 +159,9 @@ module.exports = new EntitySchema({
       joinColumn: {
         name: 'freelancer_id',
       },
-      cascade: true,
       eager: false,
     },
+
     review: {
       type: 'one-to-one',
       target: 'Review',
