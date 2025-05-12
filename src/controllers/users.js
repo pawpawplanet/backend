@@ -91,16 +91,16 @@ async function postSignup(req, res, next) {
       logger.info('自動建立 Freelancer 資料成功:', newFreelancer.id)
     }
 
-    if (savedUser.role === 'owner') {
-      const petRepository = dataSource.getRepository('Pet')
-      const newPet = petRepository.create({
-        owner: savedUser // 這裡會對應到 owner_id
+    // if (savedUser.role === 'owner') {
+    //   const petRepository = dataSource.getRepository('Pet')
+    //   const newPet = petRepository.create({
+    //     owner: savedUser // 這裡會對應到 owner_id
 
-      })
-      await petRepository.save(newPet)
-      logger.info('自動建立 Pet 資料成功:', newPet.id)
-    }
-
+    //   })
+    //   await petRepository.save(newPet)
+    //   logger.info('自動建立 Pet 資料成功:', newPet.id)
+    // }
+    // 不自動建立寵物資訊
 
 
     return res.status(201).json({
