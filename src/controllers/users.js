@@ -420,7 +420,12 @@ async function putPassword(req, res, next) {
   }
 }
 
-
+async function postLogout(req, res) {
+  res.status(200).json({
+    status: 'success',
+    message: '已登出'
+  });
+}
 
 
 module.exports = {
@@ -429,6 +434,7 @@ module.exports = {
   getProfile,
   postOwnerProfile,
   patchOwnerProfile,
+  postLogout
   //putPassword,
 
   // getServiceReviews
