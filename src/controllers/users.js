@@ -424,7 +424,7 @@ async function postLogout(req, res) {
   res.status(200).json({
     status: 'success',
     message: '已登出'
-  });
+  })
 }
 
 
