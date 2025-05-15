@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es2017", // 或您需要的 ECMAScript 版本
+    "module": "commonjs",
+    "outDir": "./dist/migrations", // 指定輸出目錄
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "./src/migrations/*.ts"
+  ]
+}

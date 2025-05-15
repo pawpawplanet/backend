@@ -16,23 +16,59 @@ module.exports = new EntitySchema({
       nullable: false,
     },
 
+    // birthday: {
+    //   type: 'date',
+    //   nullable: true,
+    // },
+
     birthday: {
       type: 'date',
-      nullable: true,
+      nullable: false,
     },
+
+    name: {
+      type: 'varchar',
+      length: '50',
+      nullable: false
+    },
+
+    species_id: {
+      type: 'smallint', // 0 貓 1 狗
+      nullable: false
+    },
+
+    is_ligation: {
+      type: 'boolean',
+      nullable: false,
+    },
+
+    // gender: {
+    //   type: 'varchar',
+    //   length: 10,
+    //   nullable: true,
+    // },
 
     gender: {
-      type: 'varchar',
-      length: 10,
-      nullable: true,
+      type: 'smallint', // 0 男生， 1 女生
+      nullable: false,
     },
+
+    // size_id: {
+    //   type: 'uuid',
+    //   nullable: true,
+    // },
 
     size_id: {
-      type: 'uuid',
-      nullable: true,
+      type: 'smallint', // 0 小型-10公斤以下 | 1 中型-10公斤以上，20公斤以下 | 2 大型- 20公斤以上
+      nullable: false,
     },
 
-    description: {
+    // description: {
+    //   type: 'text',
+    //   nullable: true,
+    // },
+
+    personality_description: {
       type: 'text',
       nullable: true,
     },

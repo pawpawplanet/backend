@@ -26,7 +26,8 @@
     "dev": "node --watch src/bin/www.js",
     "eslint:init": "eslint --init",
     "eslint:check": "eslint . --ext .js",
-    "eslint:fix": "eslint . --ext .js --fix"
+    "eslint:fix": "eslint . --ext .js --fix",
+    "typeorm:migrate": "npx typeorm migration:run -d ./src/db/data-source.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -45,6 +46,8 @@
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "eslint": "^9.25.1",
-    "globals": "^16.0.0"
+    "globals": "^16.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

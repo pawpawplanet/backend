@@ -1,7 +1,7 @@
 const { EntitySchema } = require('typeorm')
 module.exports = new EntitySchema({
   name: 'User',
-  tableName: 'Users',
+  tableName: 'users',
   columns: {
     id: {
       primary: true,
@@ -26,7 +26,7 @@ module.exports = new EntitySchema({
     //   nullable: true
     // },
     role: {
-      type: 'varchar',
+      type: 'varchar', // 飼主 | 保姆
       length: 20,
       nullable: false
     },
@@ -62,7 +62,7 @@ module.exports = new EntitySchema({
     is_active: {
       type: 'boolean',
       nullable: false,
-      default: true
+      default: false
     },
     created_at: {
       type: 'timestamp',

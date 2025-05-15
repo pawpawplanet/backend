@@ -14,40 +14,61 @@ module.exports = new EntitySchema({
       nullable: false, // 必須指定 user_id
     },
     
-    working_days: {
-      type: 'varchar',// 例如 ['1', '2']
+    // working_days: {
+    //   type: 'varchar',// 例如 ['1', '2']
+    //   array: true,
+    //   nullable: true
+    // },
+
+    working_days: { // 0星期日, 1星期ㄧ ...
+      type: 'smallint',
       array: true,
-      nullable: true
+      nullable: false,
+      default: []
     },
+
+    // is_weekly_mode: {
+    //   type: 'boolean',
+    //   default: false,
+    // },
+
     is_weekly_mode: {
       type: 'boolean',
+      nullable: false,
       default: false,
     },
+
     final_working_date: {
       type: 'date',
-      nullable: true,
+      nullable: true, // default is NULL
     },
+
     bank_account: {
       type: 'jsonb',
       nullable: true,
     },
+
     avg_rating: {
       type: 'float',
       default: 0,
     },
+
     review_count: {
       type: 'int',
       default: 0,
     },
+
     created_at: {
       type: 'timestamp',
       createDate: true,
     },
+
     updated_at: {
       type: 'timestamp',
       updateDate: true,
     },
   },
+  
   relations: {
     user: {
       type: 'one-to-one',
