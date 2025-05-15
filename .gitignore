@@ -89,7 +89,7 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
+# dist 因為 tsc 產生的 .js 會放在 dist/，而我們沒有使用 Nuxt...
 
 # Gatsby files
 .cache/
