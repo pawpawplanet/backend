@@ -20,6 +20,7 @@ const dataSource = new DataSource({
   poolSize: 10,
   // entities: [User, Order, Freelancer, Service, Service_type, Review, Pet],
   entities: [User, Order, Freelancer, Service, Review, Pet],
+  migrations: ['dist/migrations/*.js'],
   ssl: config.get('db.ssl')
 })
 

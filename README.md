@@ -15,6 +15,7 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
   - [2. 專案初始化](#2-專案初始化)
   - [3. 啟動開發環境](#3-啟動開發環境)
 - [環境變數設定](#-環境變數設定)
+- [資料庫](#資料庫migration)
 - [API 文件](#-api-文件)
 - [專案目錄結構](#-專案目錄結構)
 - [指令列表](#-指令列表)
@@ -65,7 +66,7 @@ REAME會介紹專案相關資訊並記錄建置的里程碑。
    npm run dev - 啟動開發伺服器
    ```
 
-2. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:PORT`）
+3. **確認 API 伺服器是否啟動成功**（預設在 `http://localhost:PORT`）
     ```bash
    http://localhost:PORT/api/test/helloworld?receiver=輸入名字 - 在 Postman 收到 response 'Hello World to ${receiver}!' 
    ```
@@ -81,6 +82,25 @@ PORT=...
 ...
 ```
 
+---
+
+## 資料庫 migration 
+
+若專案中的 EntitySchema 調整了，可依據 migration file，更新(遷移)資料庫： 
+
+1. **安裝套件**
+   ```bash
+   npm ci - 依據 package-lock.json 版本資訊安裝套件
+   ```
+2. **調整環境變數**
+   ```env
+   DB_SYNCHRONIZE=false... - 調整資料庫同步設定為 false
+   ...
+   ```
+3. **migration**
+   ```bash
+   npm run typeorm:migrate
+   ```
 ---
 
 ## API 文件 
