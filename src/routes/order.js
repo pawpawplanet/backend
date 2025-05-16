@@ -5,5 +5,6 @@ const authenticateToken = require('../middlewares/auth')
 
 
 router.post('/:id/review', authenticateToken, orders.PostOrderReview)
+router.patch('/:id', authenticateToken, orders.patchOrderStatus)
 
 module.exports = router
