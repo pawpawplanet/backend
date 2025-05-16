@@ -28,7 +28,7 @@ module.exports = new EntitySchema({
 
     name: {
       type: 'varchar',
-      length: '50',
+      length: 50,
       nullable: false
     },
 
@@ -101,17 +101,26 @@ module.exports = new EntitySchema({
   },
 
   relations: {
+    // owner: {
+    //   type: 'one-to-one',
+    //   target: 'User',
+    //   joinColumn: {
+    //     name: 'owner_id',
+    //   },
+    //   onDelete: 'CASCADE',
+    //   nullable: false,
+    //   eager: false
+    // },
     owner: {
       type: 'one-to-one',
       target: 'User',
       joinColumn: {
         name: 'owner_id',
+        nullable: false
       },
       onDelete: 'CASCADE',
-      nullable: false,
       eager: false
     },
-
   },
 })
 

@@ -168,9 +168,7 @@ module.exports = new EntitySchema({
       inverseSide: 'order',  // 與 Review 中的 order 對應
       cascade: true,
       eager: false,
-      nullable: true,   
+      // nullable: true,   // 不需要，定義在 review's joinColumn
     }
-
-
   },
 })

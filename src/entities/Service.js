@@ -134,11 +134,22 @@ module.exports = new EntitySchema({
     },
   },
   relations: {
+    // freelancer: {
+    //   type: 'many-to-one', // 每個服務屬於一個自由職業者
+    //   target: 'Freelancer',
+    //   joinColumn: {
+    //     name: 'freelancer_id', // 使用 freelancer_id 作為外鍵
+    //   },
+    //   cascade: ['insert', 'update'],
+    //   eager: false,
+    // },
     freelancer: {
-      type: 'many-to-one', // 每個服務屬於一個自由職業者
+      type: 'many-to-one',
       target: 'Freelancer',
       joinColumn: {
-        name: 'freelancer_id', // 使用 freelancer_id 作為外鍵
+        name: 'freelancer_id',
+        referencedColumnName: 'id',
+        nullable: false, 
       },
       cascade: ['insert', 'update'],
       eager: false,

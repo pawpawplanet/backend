@@ -38,12 +38,20 @@ async function PostOrderReview(req, res, next) {
         })
       }
   
+      // const review = reviewRepo.create({
+      //   order: { id: orderId },
+      //   rating,
+      //   comment,
+      //   user: { id: reviewerId },           // reviewer 是 user
+      //   freelancer: { id: revieweeId },     // 被評論者
+      // })
+
       const review = reviewRepo.create({
         order: { id: orderId },
         rating,
         comment,
-        user: { id: reviewerId },           // reviewer 是 user
-        freelancer: { id: revieweeId },     // 被評論者
+        reviewer_id: { id: reviewerId },     // reviewer 是 user
+        reviewee_id: { id: revieweeId },     // 被評論者
       })
   
       await reviewRepo.save(review)
