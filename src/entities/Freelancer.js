@@ -24,7 +24,7 @@ module.exports = new EntitySchema({
       type: 'smallint',
       array: true,
       nullable: false,
-      default: []
+      default: () => "'{}'"  // 空 array in PostgreSQL
     },
 
     // is_weekly_mode: {
@@ -70,14 +70,24 @@ module.exports = new EntitySchema({
   },
   
   relations: {
+    // user: {
+    //   type: 'one-to-one',
+    //   target: 'User',
+    //   joinColumn: {
+    //     name: 'user_id',
+    //   },
+    //   onDelete: 'CASCADE',
+    //   nullable: false,
+    //   eager: false,
+    // },
     user: {
       type: 'one-to-one',
       target: 'User',
       joinColumn: {
         name: 'user_id',
+        nullable: false
       },
       onDelete: 'CASCADE',
-      nullable: false,
       eager: false,
     },
     orders: {
