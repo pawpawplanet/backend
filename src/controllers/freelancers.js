@@ -1,6 +1,8 @@
 // const { P } = require('pino') // fix eslint warnings
 const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('FreelancersController')
+const orderHelper = require('../lib/order-helpers')
+const order = require('./order')
 
 //取得保姆個人資料
 async function getFreelancerProfile(req, res, next) {
@@ -147,9 +149,14 @@ async function updateFreelancerProfile(req, res, next) {
   }
 }
 
+async function getOrders(req, res, next) {
+  await order.getOrdersByRole(orderHelper.USER_ROLES.FREELANCER, req, res, next)
+}
 
 module.exports = {
   getFreelancerProfile,
   postFreelancerProfile,
-  updateFreelancerProfile
+  updateFreelancerProfile,
+
+  getOrders
 }
