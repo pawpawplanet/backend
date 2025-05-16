@@ -2,6 +2,7 @@ const { Not, In } = require('typeorm')
 const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
 
+// === api/patchOrderStatus related ===
 function checkPermission(role, action) {
   // 驗證 role 是否有效
   if (!USER_ROLES[role.toUpperCase()]) {
@@ -222,6 +223,356 @@ async function freelancerCloseOrder(userId, orderId) {
   }
 }
 
+
+// === api/{role}/orders?tag={tag}&limit={limit}&page={page} related ===
+async function freelancerGetOrders(userId, tag, limit, page) {
+  const freelancer = await dataSource.getRepository('Freelancer').findOne({ where: { user_id: userId } })
+  if (!freelancer || validation.isUndefined(freelancer)) {
+    return { statusCode: 400, status: 'failed', message: '無法取得訂單：找不到保姆資料' }
+  }
+
+  const query = {
+    ...prepareOrderQueryForTagByRole(tag, USER_ROLES.FREELANCER),
+    freelancerId: freelancer.id,
+    limit: limit,
+    page: page
+  }
+
+
+  let result = await getOrdersWithQuery(query)
+  
+  if (!result) {
+    throw new Error('should not happen ... freelancerGetOrders() has no result...')
+  } else if (result.statusCode !== 200) {
+    return result;
+  }
+
+  const data = {
+    limit: limit,
+    page: page,
+    total: result.data.total
+  }
+
+  result = await freelancerExpandOrders(result.data.orders)
+  if (!result) {
+    throw new Error('should not happen ... freelancerExpandOrders() has no result...')
+  } 
+
+  return {
+    status: result.status,
+    statusCode: result.statusCode,
+    message: result.message,
+    data: {
+      ...data,
+      data: result.data
+    }
+  }
+}
+
+async function ownerGetOrders(userId, tag, limit, page) {
+  const query = {
+    ...prepareOrderQueryForTagByRole(tag, USER_ROLES.OWNER),
+    ownerId: userId,
+    limit: limit,
+    page: page
+  }
+
+  let result = await getOrdersWithQuery(query)
+  if (!result) {
+    throw new Error('should not happen ... ownerGetOrders() has no result...')
+  } else if (result.statusCode !== 200) {
+    return result;
+  }
+
+  const data = {
+    limit: limit,
+    page: page,
+    total: result.data.total
+  }
+
+  result = await ownerExpandOrders(result.data.orders)
+  if (!result) {
+    throw new Error('should not happen ... ownerGetOrders() has no result...')
+  }
+
+  return {
+    status: result.status,
+    statusCode: result.statusCode,
+    message: result.message,
+    data:  {
+      ...data,
+      data: result.data
+    }
+  }
+}
+
+function prepareOrderQueryForTagByRole(tag, role) {
+  const query = { status: [] }
+  if (role === USER_ROLES.FREELANCER) {
+    switch (tag) {
+      case ORDER_CAT_TAG.PENDING.value:
+        query.status.push(ORDER_STATUS.PENDING)
+        break
+      case ORDER_CAT_TAG.ACCEPTED.value:
+        query.status.push(ORDER_STATUS.ACCEPT)
+        break
+      case ORDER_CAT_TAG.PAID.value:
+        query.status.push(ORDER_STATUS.PAID)
+        break
+      case ORDER_CAT_TAG.LATEST_RESPONSE.value:
+        query.status.concat([ORDER_STATUS_CANCELLED, ORDER_STATUS_EXPIRED])
+        query.didFreelancerCloseTheCase = false
+      case ORDER_CAT_TAG.CLOSE.value:
+        query.didFreelancerCloseTheCase = true
+        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+        break
+      default:
+        console.log('should not reach the default case')
+    }
+  } else if (role === USER_ROLES.OWNER) {
+    switch (tag) {
+      case ORDER_CAT_TAG.PENDING.value:
+        query.status.push(ORDER_STATUS.PENDING)
+        break
+      case ORDER_CAT_TAG.ACCEPTED.value:
+        query.status.push(ORDER_STATUS.ACCEPT)
+        break
+      case ORDER_CAT_TAG.PAID.value:
+        query.status.push(ORDER_STATUS.PAID)
+        break
+      case ORDER_CAT_TAG.LATEST_RESPONSE.value:
+        query.status.push(ORDER_STATUS.REJECTED)
+        query.didOwnerCloseTheCase = false
+      case ORDER_CAT_TAG.CLOSE.value:
+        query.didOwnerCloseTheCase = true
+        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+        break
+      default:
+        console.log('should not reach the default case')
+    }
+  }
+
+  return query
+}
+
+async function getOrdersWithQuery(query) {
+  const orderRepo = dataSource.getRepository('Order');
+  const queryBuilder = orderRepo.createQueryBuilder('order');
+
+  // 飼主或保姆 id
+  if (query.freelancerId) {
+    queryBuilder.andWhere('order.freelancer_id = :freelancerId', { freelancerId: query.freelancerId });
+  } else if (query.ownerId) {
+    queryBuilder.andWhere('order.owner_id = :ownerId', { ownerId: query.ownerId });
+  } else {
+    return { statusCode: 400, status: 'failed', message: '無法取得訂單：查詢條件缺少會員資料' }
+  }
+
+  // 訂單狀態
+  if (query.status.length > 0) {
+    queryBuilder.andWhere('order.status IN (:...status)', { status: query.status });
+  }
+
+  // 保姆是否已結案
+  if (query.didFreelancerCloseTheCase !== undefined) {
+    queryBuilder.andWhere('order.did_freelancer_close_the_case = :didFreelancerCloseTheCase', {
+      didFreelancerCloseTheCase: query.didFreelancerCloseTheCase,
+    });
+  }
+
+  // 飼主是否已結案
+  if (query.didOwnerCloseTheCase !== undefined) {
+    queryBuilder.andWhere('order.did_owner_close_the_case = :didOwnerCloseTheCase', {
+      didOwnerCloseTheCase: query.didOwnerCloseTheCase,
+    });
+  }
+
+  try {
+    // 複製 queryBuilder 以進行計數查詢，避免影響原始查詢
+    const countQueryBuilder = queryBuilder.clone();
+    const total = await countQueryBuilder.getCount();
+
+    queryBuilder.take(query.limit); // 設定每頁筆數
+    queryBuilder.skip((query.page - 1) * query.limit); // 設定要跳過的筆數
+
+    const orders = await queryBuilder.getMany();
+
+    return {
+      status: 'success',
+      statusCode: 200,
+      message: '成功',
+      data: {
+        limit: query.limit,
+        page: query.page,
+        total: total,
+        orders: orders
+      }
+    }
+  } catch (error) {
+    console.error('getOrdersWithQuery() error: ', error)
+    return {
+      status: 'error',
+      statusCode: 500,
+      message: `查詢指定標籤訂單時發生錯誤: ${error.message}`,
+      errorDetails: error
+    }
+  }
+}
+
+async function freelancerExpandOrders(orders) {
+  const orderRepo = dataSource.getRepository('Order')
+  const petRepo = dataSource.getRepository('Pet')
+  const reviewRepo = dataSource.getRepository('Review')
+
+  try {
+    const expandedOrders = await Promise.all(orders.map(async (order) => { // orders 改為 await Promise.all
+      const expandOrder = await orderRepo
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.owner', 'owner')
+        .leftJoinAndSelect('order.service', 'service')
+        .where('order.id = :orderId', { orderId: order.id })
+        .getOne();
+
+      const pet = await petRepo.findOne({ where: { id: order.pet_id } });
+      const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
+
+      if (!expandOrder || !pet) {
+        throw new Error(`Order ${order} 關聯資料有誤`);
+      }
+
+      return { ...expandOrder, pet, review };
+    }));
+
+    const data = expandedOrders.map(expandedOrder => {
+      return {
+        owner: {
+          name: expandedOrder.owner.name,
+          phone: expandedOrder.owner.phone,
+          city: expandedOrder.owner.city,
+          area: expandedOrder.owner.area,
+          description: expandedOrder.owner.description,
+          avatar: expandedOrder.owner.avatar,
+        },
+        pet: {
+          name: expandedOrder.pet.name,
+          species_id: expandedOrder.pet.species_id,
+          size: expandedOrder.pet.size,
+          birthday: expandedOrder.pet.birthday,
+          gender: expandedOrder.pet.gender,
+          personality_description: expandedOrder.pet.personality_description,
+          avatar: expandedOrder.pet.avatar,
+        },
+        service: {
+          service_type_id: expandedOrder.service.service_type_id,
+          price: expandedOrder.service.price,
+          price_unit: expandedOrder.service.price_unit,
+        },
+        order: {
+          id: expandedOrder.id,
+          service_date: expandedOrder.service_date,
+          note: expandedOrder.note,
+          status: expandedOrder.status,
+          did_freelancer_close_the_case: expandedOrder.did_freelancer_close_the_case,
+          did_owner_close_the_case: expandedOrder.did_owner_close_the_case,
+          created_at: expandedOrder.created_at,
+          updated_at: expandedOrder.updated_at,
+        },
+        review: expandedOrder.review
+      };
+    })
+
+    return { statusCode: 200, status: 'success', message: '成功', data: data }
+  } catch (error) {
+    return {
+      status: 'error',
+      statusCode: 500,
+      message: error.message,
+      error: error,
+    };
+  }
+}
+
+async function ownerExpandOrders(orders) {
+  const orderRepo = dataSource.getRepository('Order')
+  const petRepo = dataSource.getRepository('Pet')
+  const reviewRepo = dataSource.getRepository('Review')
+  const userRepo = dataSource.getRepository('User')
+
+  try {
+    const expandedOrders = await Promise.all(orders.map(async (order) => { // orders 改為 await Promise.all
+      const expandOrder = await orderRepo
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.freelancer', 'freelancer')
+        .leftJoinAndSelect('order.service', 'service')
+        .where('order.id = :orderId', { orderId: order.id })
+        .getOne();
+
+      const pet = await petRepo.findOne({ where: { id: order.pet_id } });
+      const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
+
+      if (!expandOrder || !pet) {
+        throw new Error(`Order ${order} 關聯資料有誤`);
+      }
+
+      return { ...expandOrder, pet, review };
+    }));
+
+    const data = await Promise.all(expandedOrders.map(async (expandedOrder) => {
+      const user = await userRepo.findOne({
+        where: { id: expandedOrder.freelancer.user_id },
+      });
+
+      return {
+        freelancer: {
+          name: user?.name ?? null,
+          phone: user?.phone ?? null,
+          city: user?.city ?? null,
+          area: user?.area ?? null,
+          description: user?.description ?? null,
+          avatar: user?.avatar ?? null,
+        },
+        pet: {
+          name: expandedOrder.pet.name,
+          species_id: expandedOrder.pet.species_id,
+          size: expandedOrder.pet.size,
+          birthday: expandedOrder.pet.birthday,
+          gender: expandedOrder.pet.gender,
+          personality_description: expandedOrder.pet.personality_description,
+          avatar: expandedOrder.pet.avatar,
+        },
+        service: {
+          name: expandedOrder.service.name,
+          service_type_id: expandedOrder.service.service_type_id,
+          price: expandedOrder.service.price,
+          price_unit: expandedOrder.service.price_unit,
+        },
+        order: {
+          id: expandedOrder.id,
+          service_date: expandedOrder.service_date,
+          note: expandedOrder.note,
+          status: expandedOrder.status,
+          did_freelancer_close_the_case: expandedOrder.did_freelancer_close_the_case,
+          did_owner_close_the_case: expandedOrder.did_owner_close_the_case,
+          created_at: expandedOrder.created_at,
+          updated_at: expandedOrder.updated_at,
+        },
+        review: expandedOrder.review,
+      };
+    }));
+    
+
+    return { statusCode: 200, status: 'success', message: '成功', data: data }
+  } catch (error) {
+    return {
+      status: 'error',
+      statusCode: 500,
+      message: error.message,
+      error: error,
+    };
+  }
+}
+
+// === constants ===
 const USER_ROLES = {
   OWNER: 'owner',
   FREELANCER: 'freelancer',
@@ -251,6 +602,45 @@ const ORDER_STATUS = { // 0 pending, 1 accepted, 2 paid, 3 rejected, 4 cancelled
   COMPLETED: 6  // 訂單完成
 }
 
+const ORDER_CAT_TAG = {
+  PENDING: {
+    value: 0,
+    captions: {
+      [USER_ROLES.OWNER]: '等待回覆',
+      [USER_ROLES.FREELANCER]: '等待接受'
+    }
+  },
+  ACCEPTED: {
+    value: 1,
+    captions: {
+      [USER_ROLES.OWNER]: '預約成功付款',
+      [USER_ROLES.FREELANCER]: '等待付款'
+    }
+  },
+  PAID: {
+    value: 2,
+    captions: {
+      [USER_ROLES.OWNER]: '即將執行',
+      [USER_ROLES.FREELANCER]: '即將執行'
+    }
+  },
+  LATEST_RESPONSE: {
+    value: 3,
+    captions: {
+      [USER_ROLES.OWNER]: '最新回應',
+      [USER_ROLES.FREELANCER]: '最新回應'
+    }
+  }, // 飼主 “”， 保姆 “最新回應”
+  CLOSE: {
+    value: 4,
+    captions: {
+      [USER_ROLES.OWNER]: '結案',
+      [USER_ROLES.FREELANCER]: '結案'
+    }
+  }
+}
+
+// === exports ===
 module.exports = {
   checkPermission,
 
@@ -259,6 +649,10 @@ module.exports = {
   cancelOrder,
   ownerCloseOrder,
   freelancerCloseOrder,
+
+  freelancerGetOrders,
+  ownerGetOrders,
   
-  USER_ROLES
+  USER_ROLES,
+  ORDER_CAT_TAG
 }
