@@ -8,4 +8,7 @@ router.post('/profile', authenticateToken, freelancers.postFreelancerProfile)
 router.patch('/profile', authenticateToken, freelancers.updateFreelancerProfile)
 router.get('/orders', authenticateToken, freelancers.getOrders)
 
+router.post('/services', authenticateToken,freelancers.createOrUpdateService)
+router.get('/services/:id', authenticateToken,freelancers.getFreelancerServiceDetail)
+
 module.exports = router
