@@ -1,0 +1,81 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MigrationServiceTypeId1747472641746 = void 0;
+class MigrationServiceTypeId1747472641746 {
+    constructor() {
+        this.name = 'MigrationServiceTypeId1747472641746';
+    }
+    async up(queryRunner) {
+        await queryRunner.query(`ALTER TABLE "orders" DROP CONSTRAINT "FK_b55f5a5f5d6443a0c5689df4d31"`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP CONSTRAINT "FK_5552c6dc76efbf41d815909da01"`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP CONSTRAINT "FK_d0c0cf5b9e062fbb4b16713c8f3"`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP CONSTRAINT "FK_orders_owner_id_users"`);
+        await queryRunner.query(`ALTER TABLE "services" DROP CONSTRAINT "FK_081646f683f0436141d7a802ac1"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "pet_id" uuid NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "is_active" SET DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "service_date"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "service_date" date NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "status"`);
+        await queryRunner.query(`DROP TYPE "public"."Orders_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "status" smallint NOT NULL DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "price_unit"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "price_unit" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "service_type_id"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "service_type_id" smallint NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "images"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "images" character varying array NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_pet_types"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_pet_types" smallint array NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_pet_size"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_pet_size" smallint array NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_ages"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_ages" jsonb NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_genders"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_genders" smallint array NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "price_unit"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "price_unit" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "birthday" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "name" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "species_id" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "is_ligation" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "gender" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "size_id" DROP DEFAULT`);
+    }
+    async down(queryRunner) {
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "size_id" SET DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "gender" SET DEFAULT '0'`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "is_ligation" SET DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "species_id" SET DEFAULT '1'`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "name" SET DEFAULT ''`);
+        await queryRunner.query(`ALTER TABLE "pets" ALTER COLUMN "birthday" SET DEFAULT '1970-01-01'`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "price_unit"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "price_unit" character varying(20)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_genders"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_genders" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_ages"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_ages" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_pet_size"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_pet_size" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "allowed_pet_types"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "allowed_pet_types" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "images"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "images" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "services" DROP COLUMN "service_type_id"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD "service_type_id" uuid NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "price_unit"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "price_unit" character varying(20)`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "status"`);
+        await queryRunner.query(`CREATE TYPE "public"."Orders_status_enum" AS ENUM('pending', 'confirmed', 'cancelled', 'completed')`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "status" "public"."Orders_status_enum" NOT NULL DEFAULT 'pending'`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "service_date"`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD "service_date" TIMESTAMP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "is_active" SET DEFAULT true`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "pet_id"`);
+        await queryRunner.query(`ALTER TABLE "services" ADD CONSTRAINT "FK_081646f683f0436141d7a802ac1" FOREIGN KEY ("freelancer_id") REFERENCES "freelancers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD CONSTRAINT "FK_orders_owner_id_users" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD CONSTRAINT "FK_d0c0cf5b9e062fbb4b16713c8f3" FOREIGN KEY ("freelancer_id") REFERENCES "freelancers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD CONSTRAINT "FK_5552c6dc76efbf41d815909da01" FOREIGN KEY ("service_id") REFERENCES "services"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD CONSTRAINT "FK_b55f5a5f5d6443a0c5689df4d31" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+}
+exports.MigrationServiceTypeId1747472641746 = MigrationServiceTypeId1747472641746;
