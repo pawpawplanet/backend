@@ -239,10 +239,61 @@ async function getServiceReviews(req, res, next) {
   }
 }
 
+// 查詢某服務的詳細資料
+async function getServiceDetail(req, res, next) {
+  try {
+    const serviceId = req.params.id
 
+    const serviceRepo = dataSource.getRepository('Service')
+
+    const service = await serviceRepo
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.freelancer', 'freelancer')
+      .leftJoinAndSelect('freelancer.user', 'user')
+      .where('service.id = :id', { id: serviceId })
+      .andWhere('service.enabled = true')
+      .getOne()
+
+    console.log('service',service)
+    if (!service) {
+      return res.status(404).json({ 
+        status: 'failed', 
+        message: '找不到該服務' 
+      })
+    }
+
+    const freelancer = service.freelancer
+    const user = freelancer.user
+
+    res.status(200).json({
+      status: 'success',
+      message: '成功',
+      data: {
+        service,
+        freelancer_profile: {
+          user_id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          description: user.description,
+          address: `${user.city}${user.area}`,
+          phone: user.phone,
+          available_weekdays: freelancer.working_days,
+          is_weekly_mode: freelancer.is_weekly_mode
+        },
+        review_status: {
+          count: freelancer.review_count,
+          avg_rating: freelancer.avg_rating
+        }
+      }
+    })
+  } catch (error) {
+    console.error('查詢保姆詳細資料錯誤:', error)
+    next(error)
+  }
+}
 
 module.exports = {
   getService,
-  getServiceReviews
-
+  getServiceReviews,
+  getServiceDetail
 }
