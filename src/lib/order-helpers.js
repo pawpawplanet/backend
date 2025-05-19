@@ -652,6 +652,9 @@ module.exports = {
 
   freelancerGetOrders,
   ownerGetOrders,
+
+  freelancerExpandOrders,
+  ownerExpandOrders,
   
   USER_ROLES,
   ORDER_CAT_TAG

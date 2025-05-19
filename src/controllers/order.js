@@ -246,7 +246,150 @@ async function PostOrder(req, res, next) {
     console.error('建立訂單失敗:', err)
     res.status(500).json({ message: '伺服器錯誤', error: err.message })
   }
+}
 
+// 飼主取得當天其他等待付款的訂單清單
+async function getOrdersAcceptedOnSameDate(req, res, next) {
+  try {
+    const { id, role } = req.user
+    const orderId = req.params.id
+
+    if (validation.isUndefined(orderId)) {
+      res.status(400).json({
+        status: 'failed',
+        message: `欄位未填寫正確`
+      })
+      return
+    }
+
+    if (role !== orderHelper.USER_ROLES.FREELANCER) {
+      res.status(403).json({
+        status: 'failed',
+        message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
+      })
+      return
+    }
+
+    const freelancerRepo = dataSource.getRepository('Freelancer')
+    const orderRepo = dataSource.getRepository('Order')
+
+    const [freelancer, order] = await Promise.all([
+      freelancerRepo.findOne({ where: { user_id: id } }),
+      orderRepo.findOne({ where: { id: orderId } })
+    ])
+    if (validation.isUndefined(freelancer) || validation.isUndefined(order) 
+      || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
+      res.status(400).json({
+        status: 'failed',
+        message: '無法存取訂單'
+      })
+      return
+    }
+
+    const ordersAcceptedOnSameDate = await orderRepo
+      .find({
+        where: {
+          freelancer_id: freelancer.id,
+          id: Not(order.id),
+          service_date: order.service_date,
+          status: ORDER_STATUS.ACCEPTED,
+        }
+      })  
+    
+    if (ordersAcceptedOnSameDate.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: '成功'
+      })
+    }  
+
+    const result = await ownerExpandOrders(ordersAcceptedOnSameDate)
+    if (!result) {
+      return res.status(500).json({
+        status: 'error',
+        message: '伺服器錯誤'
+      })
+    }
+
+    const filteredData = result.data.map(({ pet, review, ...rest }) => rest)
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message,
+      data: filteredData 
+    })
+  } catch (error) {
+    console.error('getOrdersAcceptedOnSameDate error:', error)
+    return res.status(500).json({
+      status: 'error',
+      message: `伺服器錯誤：${error.message}`,
+      error
+    })
+  }
+}
+
+// 保姆取得當天其他等待接受的訂單清單
+async function getOrdersRequestedOnSameDate(req, res, next) {
+  try {
+    const { id, role } = req.user
+    const orderId = req.params.id
+
+    if (validation.isUndefined(orderId)) {
+      res.status(400).json({
+        status: 'failed',
+        message: `欄位未填寫正確`
+      })
+      return
+    }
+
+    if (role !== orderHelper.USER_ROLES.OWNER) {
+      res.status(403).json({
+        status: 'failed',
+        message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
+      })
+      return
+    }
+
+    const orderRepo = dataSource.getRepository('Order')
+    const order = await orderRepo.findOne({ where: { id: orderId } })
+    if (validation.isUndefined(order) || order.status !== orderHelper.ORDER_STATUS.PENDING ) {
+      res.status(400).json({
+        status: 'failed',
+        message: '無法存取訂單'
+      })
+      return
+    }
+
+    const ordersRequestedOnSameDate = await orderRepo
+      .find({
+        where: {
+          owner_id: id,
+          id: Not(order.id),
+          service_date: order.service_date,
+          status: ORDER_STATUS.PENDING,
+        }
+      })
+
+    const result = await ownerExpandOrders(ordersRequestedOnSameDate)
+    if (!result) {
+      return res.status(500).json({
+        status: 'error',
+        message: '伺服器錯誤'
+      })
+    }
+
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message,
+      data: result.data
+    })
+  } catch (error) {
+    console.error('getOrdersAcceptedOnSameDate error:', error)
+    return res.status(500).json({
+      status: 'error',
+      message: `伺服器錯誤：${error.message}`,
+      error
+    })
+  }
 }
 
 module.exports = {
@@ -254,6 +397,7 @@ module.exports = {
   PostOrder,
 
   patchOrderStatus,
-
-  getOrdersByRole
+  getOrdersByRole,
+  getOrdersAcceptedOnSameDate,
+  getOrdersRequestedOnSameDate
 }
