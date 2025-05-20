@@ -271,10 +271,10 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
 
     const orderRepo = dataSource.getRepository('Order')
     const order= await orderRepo.findOne({ where: { id: orderId } })
-    if (validation.isNotValidObject(order) || order.status !== orderHelper.ORDER_STATUS.ACCEPT) {
+    if (validation.isNotValidObject(order) || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
       return res.status(400).json({
         status: 'failed',
-        message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 ${orderHelper.ORDER_STATUS.ACCEPT}`
+        message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 ${orderHelper.ORDER_STATUS.ACCEPTED}`
       })
     }
 
@@ -284,7 +284,7 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
           owner_id: id,
           id: Not(order.id),
           service_date: order.service_date,
-          status: orderHelper.ORDER_STATUS.ACCEPT,
+          status: orderHelper.ORDER_STATUS.ACCEPTED,
         }
       })  
      

@@ -65,7 +65,7 @@ async function acceptOrder(userId, orderId) {
     }
 
     // 調整訂單狀態  
-    order.status = ORDER_STATUS.ACCEPT
+    order.status = ORDER_STATUS.ACCEPTED
     if (!validation.isUndefined(pendingOrders) && pendingOrders.length > 0) {
       pendingOrders.forEach(order => {
         order.status = ORDER_STATUS.REJECTED
@@ -77,7 +77,7 @@ async function acceptOrder(userId, orderId) {
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
-    return { statusCode: 200, status: 'success', message: '成功接受預約', data: { order_status: ORDER_STATUS.ACCEPT } }
+    return { statusCode: 200, status: 'success', message: '成功接受預約', data: { order_status: ORDER_STATUS.ACCEPTED } }
 
   } catch (error) {
     await queryRunner.rollbackTransaction()
@@ -315,7 +315,7 @@ function prepareOrderQueryForTagByRole(tag, role) {
         query.status.push(ORDER_STATUS.PENDING)
         break
       case ORDER_CAT_TAG.ACCEPTED.value:
-        query.status.push(ORDER_STATUS.ACCEPT)
+        query.status.push(ORDER_STATUS.ACCEPTED)
         break
       case ORDER_CAT_TAG.PAID.value:
         query.status.push(ORDER_STATUS.PAID)
@@ -336,7 +336,7 @@ function prepareOrderQueryForTagByRole(tag, role) {
         query.status.push(ORDER_STATUS.PENDING)
         break
       case ORDER_CAT_TAG.ACCEPTED.value:
-        query.status.push(ORDER_STATUS.ACCEPT)
+        query.status.push(ORDER_STATUS.ACCEPTED)
         break
       case ORDER_CAT_TAG.PAID.value:
         query.status.push(ORDER_STATUS.PAID)
@@ -596,7 +596,7 @@ const permissions = {
 
 const ORDER_STATUS = { // 0 pending, 1 accepted, 2 paid, 3 rejected, 4 cancelled, 5 expired 6 completed
   PENDING: 0,    // 飼主請求預約
-  ACCEPT: 1,     // 保姆接受預約
+  ACCEPTED: 1,     // 保姆接受預約
   PAID: 2,       // 飼主付款
   REJECTED: 3,   // 保姆拒絕預約
   CANCELLED: 4,  // 飼主取消預約
