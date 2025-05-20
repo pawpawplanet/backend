@@ -165,7 +165,7 @@ async function ownerCloseOrder(userId, orderId) {
     const orderRepo = dataSource.getRepository('Order')
     const order = await orderRepo.findOne({ where: { id: orderId } })
 
-    if (validation.isUndefined(owner) || validation.isUndefined(order)) {
+    if (validation.isNotValidObject(owner) || validation.isNotValidObject(order)) {
       return { statusCode: 400, status: 'failed', message: '無法存取訂單' }
     }
     if (order.owner_id !== owner.id) {
@@ -174,14 +174,15 @@ async function ownerCloseOrder(userId, orderId) {
     if (order.status !== ORDER_STATUS.REJECTED) {
       return { statusCode: 422, status: 'failed', message: `無法結案，訂單狀態為(${order.status})` }
     }
-
+    
     // 調整訂單狀態  
     order.did_owner_close_the_order = true
-
+    
     await orderRepo.save(order)
     return { statusCode: 200, status: 'success', message: '成功結案', data: { order_status: order.status } }
 
   } catch (error) {
+    console.log('ownerCloseOrder error:', error)
     return {
       status: 'error',
       statusCode: 500,
@@ -214,6 +215,7 @@ async function freelancerCloseOrder(userId, orderId) {
     return { statusCode: 200, status: 'success', message: '成功結案', data: { order_status: order.status } }
 
   } catch (error) {
+    console.log('freelancerCloseOrder error:', error)
     return {
       status: 'error',
       statusCode: 500,
@@ -237,7 +239,6 @@ async function freelancerGetOrders(userId, tag, limit, page) {
     limit: limit,
     page: page
   }
-
 
   let result = await getOrdersWithQuery(query)
   
@@ -483,6 +484,7 @@ async function freelancerExpandOrders(orders) {
 
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
+    console.log('freelancerExpandOrders error: ', error)
     return {
       status: 'error',
       statusCode: 500,
@@ -657,5 +659,6 @@ module.exports = {
   ownerExpandOrders,
   
   USER_ROLES,
-  ORDER_CAT_TAG
+  ORDER_CAT_TAG,
+  ORDER_STATUS
 }

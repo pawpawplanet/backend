@@ -1,6 +1,7 @@
 const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
+const { Not } = require('typeorm')
 
 
 async function PostOrderReview(req, res, next) {
@@ -255,67 +256,59 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
     const orderId = req.params.id
 
     if (validation.isUndefined(orderId)) {
-      res.status(400).json({
+      return res.status(400).json({
         status: 'failed',
         message: `欄位未填寫正確`
       })
-      return
     }
-
-    if (role !== orderHelper.USER_ROLES.FREELANCER) {
-      res.status(403).json({
+    
+    if (role !== orderHelper.USER_ROLES.OWNER) {
+      return res.status(403).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })
-      return
     }
 
-    const freelancerRepo = dataSource.getRepository('Freelancer')
     const orderRepo = dataSource.getRepository('Order')
-
-    const [freelancer, order] = await Promise.all([
-      freelancerRepo.findOne({ where: { user_id: id } }),
-      orderRepo.findOne({ where: { id: orderId } })
-    ])
-    if (validation.isUndefined(freelancer) || validation.isUndefined(order) 
-      || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
-      res.status(400).json({
+    const order= await orderRepo.findOne({ where: { id: orderId } })
+    if (validation.isNotValidObject(order) || order.status !== orderHelper.ORDER_STATUS.ACCEPT) {
+      return res.status(400).json({
         status: 'failed',
-        message: '無法存取訂單'
+        message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 ${orderHelper.ORDER_STATUS.ACCEPT}`
       })
-      return
     }
 
-    const ordersAcceptedOnSameDate = await orderRepo
+    const otherOrders = await orderRepo
       .find({
         where: {
-          freelancer_id: freelancer.id,
+          owner_id: id,
           id: Not(order.id),
           service_date: order.service_date,
-          status: ORDER_STATUS.ACCEPTED,
+          status: orderHelper.ORDER_STATUS.ACCEPT,
         }
       })  
-    
-    if (ordersAcceptedOnSameDate.length === 0) {
+     
+    if (otherOrders.length === 0) {
       return res.status(200).json({
         status: 'success',
-        message: '成功'
+        message: '成功',
+        data: []
       })
     }  
 
-    const result = await ownerExpandOrders(ordersAcceptedOnSameDate)
-    if (!result) {
+    const result = await orderHelper.ownerExpandOrders(otherOrders)
+    if (validation.isNotValidObject(result)) {
       return res.status(500).json({
         status: 'error',
-        message: '伺服器錯誤'
+        message: '伺服器錯誤：fownerExpandOrders has no result...'
       })
     }
 
-    const filteredData = result.data.map(({ pet, review, ...rest }) => rest)
+    const simplifiedData = result.data.map(({ pet, review, ...rest }) => rest)
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
-      data: filteredData 
+      data: simplifiedData 
     })
   } catch (error) {
     console.error('getOrdersAcceptedOnSameDate error:', error)
@@ -334,46 +327,56 @@ async function getOrdersRequestedOnSameDate(req, res, next) {
     const orderId = req.params.id
 
     if (validation.isUndefined(orderId)) {
-      res.status(400).json({
+      return res.status(400).json({
         status: 'failed',
         message: `欄位未填寫正確`
       })
-      return
     }
-
-    if (role !== orderHelper.USER_ROLES.OWNER) {
-      res.status(403).json({
+    
+    if (role !== orderHelper.USER_ROLES.FREELANCER) {
+      return res.status(403).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })
-      return
     }
 
+    const freelancerRepo = dataSource.getRepository('Freelancer')
     const orderRepo = dataSource.getRepository('Order')
-    const order = await orderRepo.findOne({ where: { id: orderId } })
-    if (validation.isUndefined(order) || order.status !== orderHelper.ORDER_STATUS.PENDING ) {
-      res.status(400).json({
+    const [freelancer, order] = await Promise.all([
+      freelancerRepo.findOne({ where: { user_id: id} }),
+      orderRepo.findOne({ where: { id: orderId } })
+    ])
+    
+    if (validation.isNotValidObject(freelancer) || validation.isNotValidObject(order) 
+      || order.status !== orderHelper.ORDER_STATUS.PENDING ) {
+      return res.status(400).json({
         status: 'failed',
-        message: '無法存取訂單'
+        message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 (${orderHelper.ORDER_STATUS.PENDING})`
       })
-      return
     }
 
-    const ordersRequestedOnSameDate = await orderRepo
+    const otherOrders = await orderRepo
       .find({
         where: {
-          owner_id: id,
+          freelancer_id: freelancer.id,
           id: Not(order.id),
           service_date: order.service_date,
-          status: ORDER_STATUS.PENDING,
+          status: orderHelper.ORDER_STATUS.PENDING,
         }
       })
 
-    const result = await ownerExpandOrders(ordersRequestedOnSameDate)
-    if (!result) {
+    if (otherOrders.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: []
+      })
+    }    
+    const result = await orderHelper.freelancerExpandOrders(ordersRequestedOnSameDate)
+    if (validation.isNotValidObject(result)) {
       return res.status(500).json({
         status: 'error',
-        message: '伺服器錯誤'
+        message: '伺服器錯誤：freelancerExpandOrders has no result...'
       })
     }
 

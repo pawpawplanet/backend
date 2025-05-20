@@ -1,3 +1,7 @@
+function isNotValidObject(value) {
+  return !value || value === undefined
+}
+
 function isUndefined(value) {
   return value === undefined
 }
@@ -11,6 +15,7 @@ function isNotValidInteger(value) {
 }
 
 module.exports = {
+  isNotValidObject,
   isUndefined,
   isNotValidSting,
   isNotValidInteger
