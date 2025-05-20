@@ -203,7 +203,27 @@ async function updateFreelancerProfile(req, res, next) {
 }
 
 async function getOrders(req, res, next) {
-  await order.getOrdersByRole(orderHelper.USER_ROLES.FREELANCER, req, res, next)
+  try {
+    const result = await order.getOrdersByRole(USER_ROLES.OWNER, req, res, next)
+
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
+    }
+
+    const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode);
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message,
+      ...(isSuccess && {
+        limit: result.data.limit,
+        page: result.data.page,
+        total: result.data.total,
+        data: result.data.data,
+      })
+    })
+  } catch (error) {
+    next(error)
+  }
 }
 //建立或更新保姆的某個類型服務
 async function createOrUpdateService(req, res, next) {

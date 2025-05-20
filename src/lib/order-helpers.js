@@ -228,82 +228,75 @@ async function freelancerCloseOrder(userId, orderId) {
 
 // === api/{role}/orders?tag={tag}&limit={limit}&page={page} related ===
 async function freelancerGetOrders(userId, tag, limit, page) {
-  const freelancer = await dataSource.getRepository('Freelancer').findOne({ where: { user_id: userId } })
-  if (!freelancer || validation.isUndefined(freelancer)) {
-    return { statusCode: 400, status: 'failed', message: '無法取得訂單：找不到保姆資料' }
-  }
+  try {
+    const freelancer = await dataSource.getRepository('Freelancer').findOne({ where: { user_id: userId } })
+    if (validation.isNotValidObject(freelancer)) {
+      return { statusCode: 400, status: 'failed', message: '無法取得訂單：找不到保姆資料' }
+    }
 
-  const query = {
-    ...prepareOrderQueryForTagByRole(tag, USER_ROLES.FREELANCER),
-    freelancerId: freelancer.id,
-    limit: limit,
-    page: page
-  }
+    const query = {
+      ...prepareOrderQueryForTagByRole(tag, USER_ROLES.FREELANCER),
+      freelancerId: freelancer.id,
+      limit: limit,
+      page: page
+    }
 
-  let result = await getOrdersWithQuery(query)
-  
-  if (!result) {
-    throw new Error('should not happen ... freelancerGetOrders() has no result...')
-  } else if (result.statusCode !== 200) {
-    return result;
-  }
+    let result = await getOrdersWithQuery(query)
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersWithQuery returned no results' }
+    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
+      return { statusCode: result.statusCode, status: result.status, message: result.message}
+    }
 
-  const data = {
-    limit: limit,
-    page: page,
-    total: result.data.total
-  }
+    result = await freelancerExpandOrders(result.data.orders)
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：freelancerExpandOrders returned no results' }
+    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
+      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    }
 
-  result = await freelancerExpandOrders(result.data.orders)
-  if (!result) {
-    throw new Error('should not happen ... freelancerExpandOrders() has no result...')
-  } 
-
-  return {
-    status: result.status,
-    statusCode: result.statusCode,
-    message: result.message,
-    data: {
-      ...data,
+    return {
+      status: result.status,
+      statusCode: result.statusCode,
+      message: result.message,
       data: result.data
     }
+  } catch (error) {
+    throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
   }
 }
 
 async function ownerGetOrders(userId, tag, limit, page) {
-  const query = {
-    ...prepareOrderQueryForTagByRole(tag, USER_ROLES.OWNER),
-    ownerId: userId,
-    limit: limit,
-    page: page
-  }
+  try {
+    const query = {
+      ...prepareOrderQueryForTagByRole(tag, USER_ROLES.OWNER),
+      ownerId: userId,
+      limit: limit,
+      page: page
+    }
 
-  let result = await getOrdersWithQuery(query)
-  if (!result) {
-    throw new Error('should not happen ... ownerGetOrders() has no result...')
-  } else if (result.statusCode !== 200) {
-    return result;
-  }
+    let result = await getOrdersWithQuery(query)
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersWithQuery returned no results' }
+    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
+      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    }
 
-  const data = {
-    limit: limit,
-    page: page,
-    total: result.data.total
-  }
+    result = await ownerExpandOrders(result.data.orders)
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
+    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
+      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    }
 
-  result = await ownerExpandOrders(result.data.orders)
-  if (!result) {
-    throw new Error('should not happen ... ownerGetOrders() has no result...')
-  }
-
-  return {
-    status: result.status,
-    statusCode: result.statusCode,
-    message: result.message,
-    data:  {
-      ...data,
+    return {
+      status: result.status,
+      statusCode: result.statusCode,
+      message: result.message,
       data: result.data
     }
+  } catch (error) {
+    throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
   }
 }
 
@@ -357,38 +350,38 @@ function prepareOrderQueryForTagByRole(tag, role) {
 }
 
 async function getOrdersWithQuery(query) {
-  const orderRepo = dataSource.getRepository('Order');
-  const queryBuilder = orderRepo.createQueryBuilder('order');
-
-  // 飼主或保姆 id
-  if (query.freelancerId) {
-    queryBuilder.andWhere('order.freelancer_id = :freelancerId', { freelancerId: query.freelancerId });
-  } else if (query.ownerId) {
-    queryBuilder.andWhere('order.owner_id = :ownerId', { ownerId: query.ownerId });
-  } else {
-    return { statusCode: 400, status: 'failed', message: '無法取得訂單：查詢條件缺少會員資料' }
-  }
-
-  // 訂單狀態
-  if (query.status.length > 0) {
-    queryBuilder.andWhere('order.status IN (:...status)', { status: query.status });
-  }
-
-  // 保姆是否已結案
-  if (query.didFreelancerCloseTheOrder !== undefined) {
-    queryBuilder.andWhere('order.did_freelancer_close_the_order = :didFreelancerCloseTheOrder', {
-      didFreelancerCloseTheOrder: query.didFreelancerCloseTheOrder,
-    });
-  }
-
-  // 飼主是否已結案
-  if (query.didOwnerCloseTheOrder !== undefined) {
-    queryBuilder.andWhere('order.did_owner_close_the_order = :didOwnerCloseTheOrder', {
-      didOwnerCloseTheOrder: query.didOwnerCloseTheOrder,
-    });
-  }
-
   try {
+    const orderRepo = dataSource.getRepository('Order');
+    const queryBuilder = orderRepo.createQueryBuilder('order');
+
+    // 飼主或保姆 id
+    if (query.freelancerId) {
+      queryBuilder.andWhere('order.freelancer_id = :freelancerId', { freelancerId: query.freelancerId });
+    } else if (query.ownerId) {
+      queryBuilder.andWhere('order.owner_id = :ownerId', { ownerId: query.ownerId });
+    } else {
+      return { statusCode: 400, status: 'failed', message: '無法取得訂單：查詢條件缺少會員資料' }
+    }
+
+    // 訂單狀態
+    if (query.status.length > 0) {
+      queryBuilder.andWhere('order.status IN (:...status)', { status: query.status });
+    }
+
+    // 保姆是否已結案
+    if (query.didFreelancerCloseTheOrder !== undefined) {
+      queryBuilder.andWhere('order.did_freelancer_close_the_order = :didFreelancerCloseTheOrder', {
+        didFreelancerCloseTheOrder: query.didFreelancerCloseTheOrder,
+      });
+    }
+
+    // 飼主是否已結案
+    if (query.didOwnerCloseTheOrder !== undefined) {
+      queryBuilder.andWhere('order.did_owner_close_the_order = :didOwnerCloseTheOrder', {
+        didOwnerCloseTheOrder: query.didOwnerCloseTheOrder,
+      });
+    }
+
     // 複製 queryBuilder 以進行計數查詢，避免影響原始查詢
     const countQueryBuilder = queryBuilder.clone();
     const total = await countQueryBuilder.getCount();
@@ -410,13 +403,7 @@ async function getOrdersWithQuery(query) {
       }
     }
   } catch (error) {
-    console.error('getOrdersWithQuery() error: ', error)
-    return {
-      status: 'error',
-      statusCode: 500,
-      message: `查詢指定標籤訂單時發生錯誤: ${error.message}`,
-      errorDetails: error
-    }
+    throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
   }
 }
 
@@ -437,10 +424,10 @@ async function freelancerExpandOrders(orders) {
       const pet = await petRepo.findOne({ where: { id: order.pet_id } });
       const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
 
-      if (!expandOrder || !pet) {
-        throw new Error(`Order ${order} 關聯資料有誤`);
+      if (validation.isNotValidObject(expandOrder) || validation.isNotValidObject(pet)) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
-
+      
       return { ...expandOrder, pet, review };
     }));
 
@@ -484,13 +471,7 @@ async function freelancerExpandOrders(orders) {
 
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
-    console.log('freelancerExpandOrders error: ', error)
-    return {
-      status: 'error',
-      statusCode: 500,
-      message: error.message,
-      error: error,
-    };
+    throw validation.generateError('error', error.message, error)
   }
 }
 
@@ -512,8 +493,8 @@ async function ownerExpandOrders(orders) {
       const pet = await petRepo.findOne({ where: { id: order.pet_id } });
       const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
 
-      if (!expandOrder || !pet) {
-        throw new Error(`Order ${order} 關聯資料有誤`);
+      if (validation.isNotValidObject(expandOrder) || validation.isNotValidObject(pet)) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
 
       return { ...expandOrder, pet, review };
@@ -561,16 +542,10 @@ async function ownerExpandOrders(orders) {
         review: expandedOrder.review,
       };
     }));
-    
 
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
-    return {
-      status: 'error',
-      statusCode: 500,
-      message: error.message,
-      error: error,
-    };
+    throw validation.generateError('error', error.message, error)
   }
 }
 

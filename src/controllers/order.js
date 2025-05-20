@@ -139,11 +139,7 @@ async function getOrdersByRole(role, req, res, next) {
     const loginRole = req.user.role
 
     if (loginRole !== role) {
-      res.status(403).json({
-        status: 'failed',
-        message: `未經授權：您的角色 (${loginRole}) 沒有執行此 API 的權限`
-      })
-      return
+      return { statusCode: 403, status: 'failed', message: `未經授權：您的角色 (${loginRole}) 沒有執行此 API 的權限` }
     }
 
     const tag = parseInt(req.query.tag)
@@ -153,15 +149,10 @@ async function getOrdersByRole(role, req, res, next) {
     if (validation.isUndefined(tag) || validation.isNotValidInteger(tag)
       || validation.isUndefined(limit) || validation.isNotValidInteger(limit) || limit <= 0
       || validation.isUndefined(page) || validation.isNotValidInteger(page) || page <= 0) {
-      console.log(tag, limit, page)
-      res.status(400).json({
-        status: 'failed',
-        message: '欄位未填寫正確'
-      })
-      return
+        return { statusCode: 400, status: 'failed', message: '欄位未填寫正確' }
     }
 
-    result = null
+    let result;
     switch (tag) {
       case orderHelper.ORDER_CAT_TAG.PENDING.value:
       case orderHelper.ORDER_CAT_TAG.ACCEPTED.value:
@@ -173,27 +164,16 @@ async function getOrdersByRole(role, req, res, next) {
           await orderHelper.ownerGetOrders(id, tag, limit, page)
         break
       default:
-        res.status(400).json({
-          status: 'failed',
-          message: `欄位未填寫正確：不支援的 tag(${tag})`
-        })
-        return
+        return { statusCode: 400, status: 'failed', message: `欄位未填寫正確：不支援的 tag(${tag})` }
     }
 
-    if (!result) {
-      throw new Error('should not happen ... freelancerGetOrders() has no result...')
+    if (validation.isNotValidObject(result)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersByRole has no result...' }
     }
 
-    return res.status(result.statusCode).json({
-      status: result.status,
-      message: result.message,
-      limit: result.statusCode === 200 ? result.limit : 0,
-      page: result.statusCode === 200 ? result.page : 0,
-      total: result.statusCode === 200 ? result.total : 0,
-      data: result.data
-    })
+    return result;
   } catch (error) {
-    next(error)
+    throw validation.generateError('error', 'getOrdersByRole() error', error)
   }
 }
 
@@ -372,6 +352,7 @@ async function getOrdersRequestedOnSameDate(req, res, next) {
         data: []
       })
     }    
+
     const result = await orderHelper.freelancerExpandOrders(ordersRequestedOnSameDate)
     if (validation.isNotValidObject(result)) {
       return res.status(500).json({
