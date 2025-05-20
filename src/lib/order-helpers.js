@@ -73,7 +73,7 @@ async function acceptOrder(userId, orderId) {
       })
     }
 
-    const orders = (!validation.isUndefined(pendingOrders) && pendingOrders.length > 0) ? [order].concat(pendingOrders) : [order]
+    const orders = (!validation.isUndefined(pendingOrders) && pendingOrders.length > 0) ? [...order, ...pendingOrders] : [order]
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
@@ -314,7 +314,7 @@ function prepareOrderQueryForTagByRole(tag, role) {
         query.status.push(ORDER_STATUS.PAID)
         break
       case ORDER_CAT_TAG.LATEST_RESPONSE.value:
-        query.status.concat([ORDER_STATUS_CANCELLED, ORDER_STATUS_EXPIRED])
+        query.status = query.status.concat([ORDER_STATUS_CANCELLED, ORDER_STATUS_EXPIRED])
         query.didFreelancerCloseTheOrder = false
       case ORDER_CAT_TAG.CLOSE.value:
         query.didFreelancerCloseTheOrder = true
