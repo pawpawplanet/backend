@@ -322,9 +322,9 @@ function prepareOrderQueryForTagByRole(tag, role) {
         break
       case ORDER_CAT_TAG.LATEST_RESPONSE.value:
         query.status.concat([ORDER_STATUS_CANCELLED, ORDER_STATUS_EXPIRED])
-        query.didFreelancerCloseTheCase = false
+        query.didFreelancerCloseTheOrder = false
       case ORDER_CAT_TAG.CLOSE.value:
-        query.didFreelancerCloseTheCase = true
+        query.didFreelancerCloseTheOrder = true
         // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
         break
       default:
@@ -343,9 +343,9 @@ function prepareOrderQueryForTagByRole(tag, role) {
         break
       case ORDER_CAT_TAG.LATEST_RESPONSE.value:
         query.status.push(ORDER_STATUS.REJECTED)
-        query.didOwnerCloseTheCase = false
+        query.didOwnerCloseTheOrder = false
       case ORDER_CAT_TAG.CLOSE.value:
-        query.didOwnerCloseTheCase = true
+        query.didOwnerCloseTheOrder = true
         // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
         break
       default:
@@ -375,16 +375,16 @@ async function getOrdersWithQuery(query) {
   }
 
   // 保姆是否已結案
-  if (query.didFreelancerCloseTheCase !== undefined) {
-    queryBuilder.andWhere('order.did_freelancer_close_the_case = :didFreelancerCloseTheCase', {
-      didFreelancerCloseTheCase: query.didFreelancerCloseTheCase,
+  if (query.didFreelancerCloseTheOrder !== undefined) {
+    queryBuilder.andWhere('order.did_freelancer_close_the_order = :didFreelancerCloseTheOrder', {
+      didFreelancerCloseTheOrder: query.didFreelancerCloseTheOrder,
     });
   }
 
   // 飼主是否已結案
-  if (query.didOwnerCloseTheCase !== undefined) {
-    queryBuilder.andWhere('order.did_owner_close_the_case = :didOwnerCloseTheCase', {
-      didOwnerCloseTheCase: query.didOwnerCloseTheCase,
+  if (query.didOwnerCloseTheOrder !== undefined) {
+    queryBuilder.andWhere('order.did_owner_close_the_order = :didOwnerCloseTheOrder', {
+      didOwnerCloseTheOrder: query.didOwnerCloseTheOrder,
     });
   }
 
@@ -473,8 +473,8 @@ async function freelancerExpandOrders(orders) {
           service_date: expandedOrder.service_date,
           note: expandedOrder.note,
           status: expandedOrder.status,
-          did_freelancer_close_the_case: expandedOrder.did_freelancer_close_the_case,
-          did_owner_close_the_case: expandedOrder.did_owner_close_the_case,
+          did_freelancer_close_the_order: expandedOrder.did_freelancer_close_the_order,
+          did_owner_close_the_order: expandedOrder.did_owner_close_the_order,
           created_at: expandedOrder.created_at,
           updated_at: expandedOrder.updated_at,
         },
@@ -553,8 +553,8 @@ async function ownerExpandOrders(orders) {
           service_date: expandedOrder.service_date,
           note: expandedOrder.note,
           status: expandedOrder.status,
-          did_freelancer_close_the_case: expandedOrder.did_freelancer_close_the_case,
-          did_owner_close_the_case: expandedOrder.did_owner_close_the_case,
+          did_freelancer_close_the_order: expandedOrder.did_freelancer_close_the_order,
+          did_owner_close_the_order: expandedOrder.did_owner_close_the_order,
           created_at: expandedOrder.created_at,
           updated_at: expandedOrder.updated_at,
         },
