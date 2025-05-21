@@ -202,10 +202,10 @@ async function getServiceReviews(req, res, next) {
     // 2. 查詢 Review（透過 Review -> Order 拿到 service_id）
     const [reviews, total] = await reviewRepo
       .createQueryBuilder('review')
-      .leftJoinAndSelect('review.order', 'order')
-      .leftJoinAndSelect('review.user', 'user')
+      .leftJoinAndSelect('review.order', 'order')            // 對應訂單
+      .leftJoinAndSelect('review.reviewer', 'user')          // 對應撰寫者（user）
       .where('order.service_id = :service_id', { service_id })
-      .andWhere('review.freelancer_id = :freelancer_id', { freelancer_id })
+      .andWhere('review.reviewee_id = :freelancer_id', { freelancer_id })
       .orderBy('review.created_at', 'DESC')
       .skip(skip)
       .take(take)
