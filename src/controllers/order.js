@@ -173,7 +173,7 @@ async function getOrdersByRole(role, req, res, next) {
 
     return result;
   } catch (error) {
-    throw validation.generateError('error', 'getOrdersByRole() error', error)
+    throw validation.generateError('error', 'getOrdersByRole error', error)
   }
 }
 

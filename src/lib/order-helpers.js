@@ -408,67 +408,73 @@ async function getOrdersWithQuery(query) {
 }
 
 async function freelancerExpandOrders(orders) {
-  const orderRepo = dataSource.getRepository('Order')
-  const petRepo = dataSource.getRepository('Pet')
-  const reviewRepo = dataSource.getRepository('Review')
-
   try {
-    const expandedOrders = await Promise.all(orders.map(async (order) => { // orders 改為 await Promise.all
-      const expandOrder = await orderRepo
+    const orderRepo = dataSource.getRepository('Order')
+    const petRepo = dataSource.getRepository('Pet')
+    const reviewRepo = dataSource.getRepository('Review')
+
+    const petIds = orders.map(order => order.pet_id)
+    const orderIds = orders.map(order => order.id)
+
+    const [pets, reviews, expandedOrders] = await Promise.all([
+      petRepo.findBy({ id: In(petIds) }),
+      reviewRepo.findBy({ order_id: In(orderIds) }),
+      orderRepo
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.owner', 'owner')
         .leftJoinAndSelect('order.service', 'service')
-        .where('order.id = :orderId', { orderId: order.id })
-        .getOne();
+        .whereInIds(orderIds)
+        .getMany()
+    ])
 
-      const pet = await petRepo.findOne({ where: { id: order.pet_id } });
-      const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
+    const petMap = new Map(pets.map(pet => [pet.id, pet]))
+    const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))
+      .map(review => [review.order_id, review]))
 
-      if (validation.isNotValidObject(expandOrder) || validation.isNotValidObject(pet)) {
+    const data = expandedOrders.map(order => {
+      const pet = petMap.get(order.pet_id)
+      if (validation.isNotValidObject(pet)) {
         return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
-      
-      return { ...expandOrder, pet, review };
-    }));
+      const review = reviewMap.get(order.id) ?? {}
 
-    const data = expandedOrders.map(expandedOrder => {
       return {
         owner: {
-          name: expandedOrder.owner.name,
-          phone: expandedOrder.owner.phone,
-          city: expandedOrder.owner.city,
-          area: expandedOrder.owner.area,
-          description: expandedOrder.owner.description,
-          avatar: expandedOrder.owner.avatar,
+          name: order.owner.name,
+          phone: order.owner.phone,
+          city: order.owner.city,
+          area: order.owner.area,
+          description: order.owner.description,
+          avatar: order.owner.avatar,
         },
         pet: {
-          name: expandedOrder.pet.name,
-          species_id: expandedOrder.pet.species_id,
-          size: expandedOrder.pet.size,
-          birthday: expandedOrder.pet.birthday,
-          gender: expandedOrder.pet.gender,
-          personality_description: expandedOrder.pet.personality_description,
-          avatar: expandedOrder.pet.avatar,
+          name: pet.name,
+          species_id: pet.species_id,
+          size: pet.size,
+          birthday: pet.birthday,
+          gender: pet.gender,
+          personality_description: pet.personality_description,
+          avatar: pet.avatar,
         },
         service: {
-          service_type_id: expandedOrder.service.service_type_id,
-          price: expandedOrder.service.price,
-          price_unit: expandedOrder.service.price_unit,
+          service_type_id: order.service.service_type_id,
+          price: order.service.price,
+          price_unit: order.service.price_unit,
         },
         order: {
-          id: expandedOrder.id,
-          service_date: expandedOrder.service_date,
-          note: expandedOrder.note,
-          status: expandedOrder.status,
-          did_freelancer_close_the_order: expandedOrder.did_freelancer_close_the_order,
-          did_owner_close_the_order: expandedOrder.did_owner_close_the_order,
-          created_at: expandedOrder.created_at,
-          updated_at: expandedOrder.updated_at,
+          id: order.id,
+          service_date: order.service_date,
+          note: order.note,
+          status: order.status,
+          did_freelancer_close_the_order: order.did_freelancer_close_the_order,
+          did_owner_close_the_order: order.did_owner_close_the_order,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
         },
-        review: expandedOrder.review
-      };
+        review: review
+      }
     })
-
+    
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
     throw validation.generateError('error', error.message, error)
@@ -476,72 +482,89 @@ async function freelancerExpandOrders(orders) {
 }
 
 async function ownerExpandOrders(orders) {
-  const orderRepo = dataSource.getRepository('Order')
-  const petRepo = dataSource.getRepository('Pet')
-  const reviewRepo = dataSource.getRepository('Review')
-  const userRepo = dataSource.getRepository('User')
-
   try {
-    const expandedOrders = await Promise.all(orders.map(async (order) => { // orders 改為 await Promise.all
-      const expandOrder = await orderRepo
+    const orderRepo = dataSource.getRepository('Order')
+    const petRepo = dataSource.getRepository('Pet')
+    const reviewRepo = dataSource.getRepository('Review')
+    const freelancerRepo = dataSource.getRepository('Freelancer')
+    const userRepo = dataSource.getRepository('User')
+
+    const petIds = orders.map(order => order.pet_id)
+    const orderIds = orders.map(order => order.id)
+    const freelancerIds = orders.map(order => order.freelancer_id)
+
+    const [pets, reviews, freelancers, expandedOrders] = await Promise.all([
+      petRepo.findBy({ id: In(petIds) }),
+      reviewRepo.findBy({ order_id: In(orderIds) }),
+      freelancerRepo.findBy({ id: In(freelancerIds) }),
+      orderRepo
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.freelancer', 'freelancer')
         .leftJoinAndSelect('order.service', 'service')
-        .where('order.id = :orderId', { orderId: order.id })
-        .getOne();
+        .where(orderIds)
+        .getMany()
+    ]);
 
-      const pet = await petRepo.findOne({ where: { id: order.pet_id } });
-      const review = await reviewRepo.findOne({ where: { order_id: order.id } }) || {}
+    const petMap = new Map(pets.map(pet => [pet.id, pet]))
+    const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))
+      .map(review => [review.order_id, review]))
 
-      if (validation.isNotValidObject(expandOrder) || validation.isNotValidObject(pet)) {
+    const userIds = freelancers.map( freelancer => freelancer.user_id)
+    const users = await userRepo.findBy({ id: In(userIds)})
+    const userMap = new Map(users.map(user => [user.id, user]))
+    const freelancerMap = new Map(
+      freelancers.map(freelancer => [freelancer.id, userMap.get(freelancer.user_id)]))
+
+    const data = expandedOrders.map(order => {
+      const pet = petMap.get(order.pet_id)
+      if (validation.isNotValidObject(pet)) {
         return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
 
-      return { ...expandOrder, pet, review };
-    }));
+      const freelancer = freelancerMap.get(order.freelancer_id)
+      if (validation.isNotValidObject(freelancer)) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
+      }
 
-    const data = await Promise.all(expandedOrders.map(async (expandedOrder) => {
-      const user = await userRepo.findOne({
-        where: { id: expandedOrder.freelancer.user_id },
-      });
-
+      const review = reviewMap.get(order.id) ?? {}
+      
       return {
         freelancer: {
-          name: user?.name ?? null,
-          phone: user?.phone ?? null,
-          city: user?.city ?? null,
-          area: user?.area ?? null,
-          description: user?.description ?? null,
-          avatar: user?.avatar ?? null,
+          name: order.freelancer.name,
+          phone: order.freelancer.phone,
+          city: order.freelancer.city,
+          area: order.freelancer.area,
+          description: order.freelancer.description,
+          avatar: order.freelancer.avatar,
         },
         pet: {
-          name: expandedOrder.pet.name,
-          species_id: expandedOrder.pet.species_id,
-          size: expandedOrder.pet.size,
-          birthday: expandedOrder.pet.birthday,
-          gender: expandedOrder.pet.gender,
-          personality_description: expandedOrder.pet.personality_description,
-          avatar: expandedOrder.pet.avatar,
+          name: pet.name,
+          species_id: pet.species_id,
+          size: pet.size,
+          birthday: pet.birthday,
+          gender: pet.gender,
+          personality_description: pet.personality_description,
+          avatar: pet.avatar,
         },
         service: {
-          name: expandedOrder.service.name,
-          service_type_id: expandedOrder.service.service_type_id,
-          price: expandedOrder.service.price,
-          price_unit: expandedOrder.service.price_unit,
+          name: order.service.name,
+          service_type_id: order.service.service_type_id,
+          price: order.service.price,
+          price_unit: order.service.price_unit,
         },
         order: {
-          id: expandedOrder.id,
-          service_date: expandedOrder.service_date,
-          note: expandedOrder.note,
-          status: expandedOrder.status,
-          did_freelancer_close_the_order: expandedOrder.did_freelancer_close_the_order,
-          did_owner_close_the_order: expandedOrder.did_owner_close_the_order,
-          created_at: expandedOrder.created_at,
-          updated_at: expandedOrder.updated_at,
+          id: order.id,
+          service_date: order.service_date,
+          note: order.note,
+          status: order.status,
+          did_freelancer_close_the_order: order.did_freelancer_close_the_order,
+          did_owner_close_the_order: order.did_owner_close_the_order,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
         },
-        review: expandedOrder.review,
+        review: review,
       };
-    }));
+    });
 
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
