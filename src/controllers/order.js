@@ -170,7 +170,7 @@ async function getOrdersByRole(role, req, res, next) {
     if (validation.isNotValidObject(result)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersByRole has no result...' }
     }
-
+  
     return result;
   } catch (error) {
     throw validation.generateError('error', 'getOrdersByRole error', error)
@@ -280,7 +280,7 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
     if (validation.isNotValidObject(result)) {
       return res.status(500).json({
         status: 'error',
-        message: '伺服器錯誤：fownerExpandOrders has no result...'
+        message: '伺服器錯誤：ownerExpandOrders has no result...'
       })
     }
 

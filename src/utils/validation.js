@@ -15,7 +15,7 @@ function isNotValidInteger(value) {
 }
 
 function isNotSuccessStatusCode(value) {
-  return isNotValidInteger(value) || result.statusCode >=400
+  return isNotValidInteger(value) || value >=400
 }
 
 function generateError(status, message, detail) {

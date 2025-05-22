@@ -240,26 +240,41 @@ async function freelancerGetOrders(userId, tag, limit, page) {
       limit: limit,
       page: page
     }
-
-    let result = await getOrdersWithQuery(query)
-    if (validation.isNotValidObject(result)) {
+    
+    let queryResult = await getOrdersWithQuery(query)
+    if (validation.isNotValidObject(queryResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersWithQuery returned no results' }
-    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
-      return { statusCode: result.statusCode, status: result.status, message: result.message}
+    } else if (validation.isNotSuccessStatusCode(queryResult.statusCode)) {
+      return { statusCode: queryResult.statusCode, status: queryResult.status, message: queryResult.message }
+    }
+  
+    if (queryResult.data.orders.length == 0) {
+      return {
+        status: queryResult.status,
+        statusCode: queryResult.statusCode,
+        message: queryResult.message,
+        data: queryResult.data
+      }
     }
 
-    result = await freelancerExpandOrders(result.data.orders)
-    if (validation.isNotValidObject(result)) {
+    const total = queryResult.data.total
+    const expandResult = await freelancerExpandOrders(queryResult.data.orders)
+    if (validation.isNotValidObject(expandResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：freelancerExpandOrders returned no results' }
-    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
-      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
+      return { statusCode: expandResult.statusCode, status: expandResult.status, message: expandResult.message }
     }
 
     return {
-      status: result.status,
-      statusCode: result.statusCode,
-      message: result.message,
-      data: result.data
+      status: expandResult.status,
+      statusCode: expandResult.statusCode,
+      message: expandResult.message,
+      data: {
+        limit: limit,
+        page: page,
+        total: total,
+        orders: expandResult.data
+      }
     }
   } catch (error) {
     throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
@@ -275,26 +290,44 @@ async function ownerGetOrders(userId, tag, limit, page) {
       page: page
     }
 
-    let result = await getOrdersWithQuery(query)
-    if (validation.isNotValidObject(result)) {
+    const queryResult = await getOrdersWithQuery(query)
+
+    if (validation.isNotValidObject(queryResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersWithQuery returned no results' }
-    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
-      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    } else if (validation.isNotSuccessStatusCode(queryResult.statusCode)) {
+      return { statusCode: queryResult.statusCode, status: queryResult.status, message: queryResult.message }
     }
 
-    result = await ownerExpandOrders(result.data.orders)
-    if (validation.isNotValidObject(result)) {
-      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
-    } else if (validation.isNotSuccessStatusCode(result.statusCode)) {
-      return { statusCode: result.statusCode, status: result.status, message: result.message }
+    if (queryResult.data.orders.length == 0) {
+      return {
+        status: queryResult.status,
+        statusCode: queryResult.statusCode,
+        message: queryResult.message,
+        data: queryResult.data
+      }
+    }
+
+    const total = queryResult.data.total
+    if (queryResult.data.orders.length > 0) {
+      expandResult = await ownerExpandOrders(queryResult.data.orders)
+      if (validation.isNotValidObject(expandResult)) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
+      } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
+        return { statusCode: expandResult.statusCode, status: expandResult.status, message: expandResult.message }
+      }
     }
 
     return {
-      status: result.status,
-      statusCode: result.statusCode,
-      message: result.message,
-      data: result.data
-    }
+      status: expandResult.status,
+      statusCode: expandResult.statusCode,
+      message: expandResult.message,
+      data: {
+        limit: limit,
+        page: page,
+        total: total,
+        orders: expandResult.data
+      }
+    }      
   } catch (error) {
     throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
   }
@@ -390,7 +423,7 @@ async function getOrdersWithQuery(query) {
     queryBuilder.skip((query.page - 1) * query.limit); // 設定要跳過的筆數
 
     const orders = await queryBuilder.getMany();
-
+    
     return {
       status: 'success',
       statusCode: 200,
@@ -404,6 +437,45 @@ async function getOrdersWithQuery(query) {
     }
   } catch (error) {
     throw validation.generateError('error', `查詢指定標籤訂單時發生錯誤: ${error.message}`, error)
+  }
+}
+
+function expandOrder(order, user, pet, service, review) {
+  return {
+    user: {
+      name: user.name,
+      phone: user.phone,
+      city: user.city,
+      area: user.area,
+      description: user.description,
+      avatar: user.avatar,
+    },
+    pet: {
+      name: pet.name,
+      species_id: pet.species_id,
+      size: pet.size,
+      birthday: pet.birthday,
+      gender: pet.gender,
+      personality_description: pet.personality_description,
+      avatar: pet.avatar,
+    },
+    service: {
+      name: service.name,
+      service_type_id: service.service_type_id,
+      price: service.price,
+      price_unit: service.price_unit,
+    },
+    order: {
+      id: order.id,
+      service_date: order.service_date,
+      note: order.note,
+      status: order.status,
+      did_freelancer_close_the_order: order.did_freelancer_close_the_order,
+      did_owner_close_the_order: order.did_owner_close_the_order,
+      created_at: order.created_at,
+      updated_at: order.updated_at,
+    },
+    review: review,
   }
 }
 
@@ -423,7 +495,7 @@ async function freelancerExpandOrders(orders) {
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.owner', 'owner')
         .leftJoinAndSelect('order.service', 'service')
-        .whereInIds(orderIds)
+        .where('order.id IN (:...ids)', { ids: orderIds })
         .getMany()
     ])
 
@@ -436,45 +508,14 @@ async function freelancerExpandOrders(orders) {
       if (validation.isNotValidObject(pet)) {
         return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
-      const review = reviewMap.get(order.id) ?? {}
 
-      return {
-        owner: {
-          name: order.owner.name,
-          phone: order.owner.phone,
-          city: order.owner.city,
-          area: order.owner.area,
-          description: order.owner.description,
-          avatar: order.owner.avatar,
-        },
-        pet: {
-          name: pet.name,
-          species_id: pet.species_id,
-          size: pet.size,
-          birthday: pet.birthday,
-          gender: pet.gender,
-          personality_description: pet.personality_description,
-          avatar: pet.avatar,
-        },
-        service: {
-          service_type_id: order.service.service_type_id,
-          price: order.service.price,
-          price_unit: order.service.price_unit,
-        },
-        order: {
-          id: order.id,
-          service_date: order.service_date,
-          note: order.note,
-          status: order.status,
-          did_freelancer_close_the_order: order.did_freelancer_close_the_order,
-          did_owner_close_the_order: order.did_owner_close_the_order,
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-        },
-        review: review
-      }
+      const review = reviewMap.get(order.id) ?? {}
+      const expandedOrder = expandOrder(order, order.owner, pet, order.service, review)
+      const { user, ...rest } = expandedOrder
+      
+      return { owner: user, ...rest }
     })
-    
+  
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
     throw validation.generateError('error', error.message, error)
@@ -501,7 +542,7 @@ async function ownerExpandOrders(orders) {
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.freelancer', 'freelancer')
         .leftJoinAndSelect('order.service', 'service')
-        .where(orderIds)
+        .where('order.id IN (:...ids)', { ids: orderIds })
         .getMany()
     ]);
 
@@ -528,43 +569,10 @@ async function ownerExpandOrders(orders) {
 
       const review = reviewMap.get(order.id) ?? {}
       
-      return {
-        freelancer: {
-          name: order.freelancer.name,
-          phone: order.freelancer.phone,
-          city: order.freelancer.city,
-          area: order.freelancer.area,
-          description: order.freelancer.description,
-          avatar: order.freelancer.avatar,
-        },
-        pet: {
-          name: pet.name,
-          species_id: pet.species_id,
-          size: pet.size,
-          birthday: pet.birthday,
-          gender: pet.gender,
-          personality_description: pet.personality_description,
-          avatar: pet.avatar,
-        },
-        service: {
-          name: order.service.name,
-          service_type_id: order.service.service_type_id,
-          price: order.service.price,
-          price_unit: order.service.price_unit,
-        },
-        order: {
-          id: order.id,
-          service_date: order.service_date,
-          note: order.note,
-          status: order.status,
-          did_freelancer_close_the_order: order.did_freelancer_close_the_order,
-          did_owner_close_the_order: order.did_owner_close_the_order,
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-        },
-        review: review,
-      };
-    });
+      const expandedOrder = expandOrder(order, freelancer, pet, order.service, review)
+      const { user, ...rest } = expandedOrder
+      return { freelancer: user, ...rest }
+    })
 
     return { statusCode: 200, status: 'success', message: '成功', data: data }
   } catch (error) {
