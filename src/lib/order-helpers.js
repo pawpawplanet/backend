@@ -23,12 +23,12 @@ function checkPermission(role, action) {
 }
 
 async function acceptOrder(userId, orderId) {
-  const queryRunner = dataSource.createQueryRunner()
-
-  await queryRunner.connect()
-  await queryRunner.startTransaction()
-
   try {
+    const queryRunner = dataSource.createQueryRunner()
+
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+    
     const freelancer = await queryRunner.manager.getRepository('Freelancer').findOne({ where: { user_id: userId } })
     const orderRepo = queryRunner.manager.getRepository('Order')
     const order = await orderRepo.findOne({ where: { id: orderId } })
