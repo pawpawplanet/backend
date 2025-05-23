@@ -338,11 +338,106 @@ async function getFreelancerServiceDetail(req, res, next) {
     next(error)
   }
 }
+
+// 取得指定保姆的可接案日期
+async function getSchedule(req, res, next) {
+  try {
+    const { role } = req.user
+    const { id: freelancerId } = req.params
+
+    if (!freelancerId) {
+      return res.status(400).json({
+        status: 'failed',
+        message: `欄位未填寫正確`
+      })
+    }
+    
+    if (role !== orderHelper.USER_ROLES.OWNER) {
+      return res.status(403).json({
+        status: 'failed',
+        message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
+      })
+    }
+
+    const freelancerRepo = dataSource.getRepository('Freelancer')
+    const orderRepo = dataSource.getRepository('Order')
+
+    const freelancer = await freelancerRepo.findOne({ where: { id: freelancerId}})
+    if (!freelancer) {
+      return res.status(404).json({
+        status: 'failed',
+        message: '無法取得可接案日期：找不到保姆資料'
+      })
+    }
+
+    const workingDays = freelancer.working_days
+    if (!Array.isArray(workingDays)) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '無法取得可接案日期：找不到可接案 weekday'
+      })
+    }
+
+    const DAYS_AHEAD = 7
+    const finalWorkingDate = freelancer.final_working_date
+    const startDayJSDate = dayjs().add(1, 'day')
+    const endDayJSDate = dayjs().add(DAYS_AHEAD, 'day')
+
+    const availableDates = []
+    const finalWorkingDayJSDate = finalWorkingDate ? dayjs(finalWorkingDate): endDayJSDate
+
+    for (let i = 1; i <= DAYS_AHEAD; i++) {
+      const dayJSDate = dayjs().add(i, 'day')      
+      if (dayJSDate.isBefore(finalWorkingDayJSDate.add(1, 'day')) && workingDays.includes(dayJSDate.day())) {
+        availableDates.push(dayJSDate.toDate())
+      }
+    }
+
+    if (availableDates.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: {
+          start_date: startDayJSDate.format('YYYY-MM-DD'),
+          end_date: endDayJSDate.format('YYYY-MM-DD'),
+          available_dates: []
+        }
+      })
+    }
+
+    const orders = await orderRepo
+        .createQueryBuilder('order')
+        .where('order.freelancer_id = :freelancerId ', { freelancerId })
+        .andWhere('order.status = :status', { status: orderHelper.ORDER_STATUS.ACCEPTED })
+        .andWhere('order.service_date IN (:...dates)', { dates: availableDates })
+        .getMany()
+
+    const serviceStrDates = orders.map(order => order.service_date)
+      .map(date => dayjs(date).format('YYYY-MM-DD'))
+    const resultStrDates = availableDates.map(date => dayjs(date).format('YYYY-MM-DD'))
+      .filter(strDate => !serviceStrDates.includes(strDate))
+
+    return res.status(200).json({
+      status: 'success',
+      message: '成功',
+      data: {
+        start_date: startDayJSDate.format('YYYY-MM-DD'),
+        end_date: endDayJSDate.format('YYYY-MM-DD'),
+        available_dates: resultStrDates
+      }
+    })  
+  } catch (error) {
+    console.error('getSchedule error:', error)
+    next(error)
+  }
+}
+
 module.exports = {
   getFreelancerProfile,
   postFreelancerProfile,
   updateFreelancerProfile,
   getOrders,
   createOrUpdateService,
-  getFreelancerServiceDetail
+  getFreelancerServiceDetail,
+  getSchedule
 }
