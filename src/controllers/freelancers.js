@@ -211,7 +211,7 @@ async function getOrders(req, res, next) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
     }
 
-    const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode);
+    const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode)
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
@@ -346,7 +346,7 @@ async function getSchedule(req, res, next) {
     if (!freelancerId) {
       return res.status(400).json({
         status: 'failed',
-        message: `欄位未填寫正確`
+        message: '欄位未填寫正確'
       })
     }
     
@@ -404,11 +404,11 @@ async function getSchedule(req, res, next) {
     }
 
     const orders = await orderRepo
-        .createQueryBuilder('order')
-        .where('order.freelancer_id = :freelancerId ', { freelancerId })
-        .andWhere('order.status = :status', { status: orderHelper.ORDER_STATUS.ACCEPTED })
-        .andWhere('order.service_date IN (:...dates)', { dates: availableDates })
-        .getMany()
+      .createQueryBuilder('order')
+      .where('order.freelancer_id = :freelancerId ', { freelancerId })
+      .andWhere('order.status = :status', { status: orderHelper.ORDER_STATUS.ACCEPTED })
+      .andWhere('order.service_date IN (:...dates)', { dates: availableDates })
+      .getMany()
 
     const serviceStrDates = orders.map(order => order.service_date)
       .map(date => dayjs(date).format('YYYY-MM-DD'))

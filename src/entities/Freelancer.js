@@ -24,7 +24,7 @@ module.exports = new EntitySchema({
       type: 'smallint',
       array: true,
       nullable: false,
-      default: () => "'{}'"  // 空 array in PostgreSQL
+      default: () => '\'{}\''  // 空 array in PostgreSQL
     },
 
     // is_weekly_mode: {
