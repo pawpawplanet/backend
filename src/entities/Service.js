@@ -73,7 +73,7 @@ module.exports = new EntitySchema({
     //   length: 255, 
     // },
 
-    allowed_pet_size: {
+    allowed_pet_sizes: {
       type: 'smallint', // 儲存為 0 | 1 | 2
       array: true,
       nullable: false,
@@ -85,7 +85,7 @@ module.exports = new EntitySchema({
     //   length: 255, 
     // },
 
-    allowed_ages: {
+    allowed_pet_ages: {
       type: 'jsonb', // { min: 0, max: 15}
       nullable: false,
     },
@@ -96,7 +96,8 @@ module.exports = new EntitySchema({
     //   length: 255,
     // },
   
-    allowed_genders: {
+    
+    allowed_pet_genders: {
       type: 'smallint', // 儲存為 0 | 1
       array: true,
       nullable: false,

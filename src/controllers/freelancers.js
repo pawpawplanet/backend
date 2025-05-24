@@ -293,8 +293,6 @@ async function getFreelancerServiceDetail(req, res, next) {
   try {
     const { id }  = req.user
     const service_type_id = parseInt(req.params.id, 10)
-    console.log('req.params.id:', typeof service_type_id)
-    console.log('req.user.id:', id)
 
     const repo = dataSource.getRepository('Service')
 
@@ -322,9 +320,9 @@ async function getFreelancerServiceDetail(req, res, next) {
       price_unit: service.price_unit,
       images: service.images,
       allowed_pet_types: service.allowed_pet_types,
-      allowed_pet_sizes: service.allowed_pet_size,
-      allowed_pet_ages: service.allowed_ages,
-      allowed_pet_genders: service.allowed_genders,
+      allowed_pet_sizes: service.allowed_pet_sizes,
+      allowed_pet_ages: service.allowed_pet_ages,
+      allowed_pet_genders: service.allowed_pet_genders,
       extra_options: service.extra_options,
     }
 
