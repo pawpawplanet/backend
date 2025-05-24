@@ -1,12 +1,12 @@
 const { DataSource } = require('typeorm')
 const config = require('../config/index')
 const User = require('../entities/User')
-const Order = require('../entities/order')
-const Freelancer = require('../entities/freelancer')
-const Service = require('../entities/service')
+const Order = require('../entities/Order')
+const Freelancer = require('../entities/Freelancer')
+const Service = require('../entities/Service')
 // const Service_type = require('../entities/service_type')
-const Review = require('../entities/review')
-const Pet = require('../entities/pet')
+const Review = require('../entities/Review')
+const Pet = require('../entities/Pet')
 
 
 
