@@ -27,7 +27,7 @@
     "eslint:init": "eslint --init",
     "eslint:check": "eslint . --ext .js",
     "eslint:fix": "eslint . --ext .js --fix",
-    "typeorm:migrate": "npx typeorm migration:run -d ./src/db/data-source.js"
+    "typeorm:migrate": "npx typeorm migration:run -d src/db/data-source.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

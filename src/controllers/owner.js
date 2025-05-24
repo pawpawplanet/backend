@@ -1,4 +1,3 @@
-const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
 const order = require('./order')
@@ -11,7 +10,7 @@ async function getOrders(req, res, next) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
     }
 
-    const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode);
+    const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode)
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,

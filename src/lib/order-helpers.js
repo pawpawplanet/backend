@@ -23,9 +23,9 @@ function checkPermission(role, action) {
 }
 
 async function acceptOrder(userId, orderId) {
-  try {
-    const queryRunner = dataSource.createQueryRunner()
+  const queryRunner = dataSource.createQueryRunner()
 
+  try {
     await queryRunner.connect()
     await queryRunner.startTransaction()
     
@@ -248,7 +248,7 @@ async function freelancerGetOrders(userId, tag, limit, page) {
       return { statusCode: queryResult.statusCode, status: queryResult.status, message: queryResult.message }
     }
   
-    if (queryResult.data.orders.length == 0) {
+    if (queryResult.data.orders.length === 0) {
       return {
         status: queryResult.status,
         statusCode: queryResult.statusCode,
@@ -298,7 +298,7 @@ async function ownerGetOrders(userId, tag, limit, page) {
       return { statusCode: queryResult.statusCode, status: queryResult.status, message: queryResult.message }
     }
 
-    if (queryResult.data.orders.length == 0) {
+    if (queryResult.data.orders.length === 0) {
       return {
         status: queryResult.status,
         statusCode: queryResult.statusCode,
@@ -308,13 +308,11 @@ async function ownerGetOrders(userId, tag, limit, page) {
     }
 
     const total = queryResult.data.total
-    if (queryResult.data.orders.length > 0) {
-      expandResult = await ownerExpandOrders(queryResult.data.orders)
-      if (validation.isNotValidObject(expandResult)) {
-        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
-      } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
-        return { statusCode: expandResult.statusCode, status: expandResult.status, message: expandResult.message }
-      }
+    const expandResult = await ownerExpandOrders(queryResult.data.orders)
+    if (validation.isNotValidObject(expandResult)) {
+      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
+    } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
+      return { statusCode: expandResult.statusCode, status: expandResult.status, message: expandResult.message }
     }
 
     return {
@@ -337,45 +335,47 @@ function prepareOrderQueryForTagByRole(tag, role) {
   const query = { status: [] }
   if (role === USER_ROLES.FREELANCER) {
     switch (tag) {
-      case ORDER_CAT_TAG.PENDING.value:
-        query.status.push(ORDER_STATUS.PENDING)
-        break
-      case ORDER_CAT_TAG.ACCEPTED.value:
-        query.status.push(ORDER_STATUS.ACCEPTED)
-        break
-      case ORDER_CAT_TAG.PAID.value:
-        query.status.push(ORDER_STATUS.PAID)
-        break
-      case ORDER_CAT_TAG.LATEST_RESPONSE.value:
-        query.status = query.status.concat([ORDER_STATUS_CANCELLED, ORDER_STATUS_EXPIRED])
-        query.didFreelancerCloseTheOrder = false
-      case ORDER_CAT_TAG.CLOSE.value:
-        query.didFreelancerCloseTheOrder = true
-        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
-        break
-      default:
-        console.log('should not reach the default case')
+    case ORDER_CAT_TAG.PENDING.value:
+      query.status.push(ORDER_STATUS.PENDING)
+      break
+    case ORDER_CAT_TAG.ACCEPTED.value:
+      query.status.push(ORDER_STATUS.ACCEPTED)
+      break
+    case ORDER_CAT_TAG.PAID.value:
+      query.status.push(ORDER_STATUS.PAID)
+      break
+    case ORDER_CAT_TAG.LATEST_RESPONSE.value:
+      query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED])
+      query.didFreelancerCloseTheOrder = false
+      break
+    case ORDER_CAT_TAG.CLOSE.value:
+      query.didFreelancerCloseTheOrder = true
+      // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+      break
+    default:
+      console.log('should not reach the default case')
     }
   } else if (role === USER_ROLES.OWNER) {
     switch (tag) {
-      case ORDER_CAT_TAG.PENDING.value:
-        query.status.push(ORDER_STATUS.PENDING)
-        break
-      case ORDER_CAT_TAG.ACCEPTED.value:
-        query.status.push(ORDER_STATUS.ACCEPTED)
-        break
-      case ORDER_CAT_TAG.PAID.value:
-        query.status.push(ORDER_STATUS.PAID)
-        break
-      case ORDER_CAT_TAG.LATEST_RESPONSE.value:
-        query.status.push(ORDER_STATUS.REJECTED)
-        query.didOwnerCloseTheOrder = false
-      case ORDER_CAT_TAG.CLOSE.value:
-        query.didOwnerCloseTheOrder = true
-        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
-        break
-      default:
-        console.log('should not reach the default case')
+    case ORDER_CAT_TAG.PENDING.value:
+      query.status.push(ORDER_STATUS.PENDING)
+      break
+    case ORDER_CAT_TAG.ACCEPTED.value:
+      query.status.push(ORDER_STATUS.ACCEPTED)
+      break
+    case ORDER_CAT_TAG.PAID.value:
+      query.status.push(ORDER_STATUS.PAID)
+      break
+    case ORDER_CAT_TAG.LATEST_RESPONSE.value:
+      query.status.push(ORDER_STATUS.REJECTED)
+      query.didOwnerCloseTheOrder = false
+      break
+    case ORDER_CAT_TAG.CLOSE.value:
+      query.didOwnerCloseTheOrder = true
+      // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+      break
+    default:
+      console.log('should not reach the default case')
     }
   }
 
@@ -384,45 +384,45 @@ function prepareOrderQueryForTagByRole(tag, role) {
 
 async function getOrdersWithQuery(query) {
   try {
-    const orderRepo = dataSource.getRepository('Order');
-    const queryBuilder = orderRepo.createQueryBuilder('order');
+    const orderRepo = dataSource.getRepository('Order')
+    const queryBuilder = orderRepo.createQueryBuilder('order')
 
     // 飼主或保姆 id
     if (query.freelancerId) {
-      queryBuilder.andWhere('order.freelancer_id = :freelancerId', { freelancerId: query.freelancerId });
+      queryBuilder.andWhere('order.freelancer_id = :freelancerId', { freelancerId: query.freelancerId })
     } else if (query.ownerId) {
-      queryBuilder.andWhere('order.owner_id = :ownerId', { ownerId: query.ownerId });
+      queryBuilder.andWhere('order.owner_id = :ownerId', { ownerId: query.ownerId })
     } else {
       return { statusCode: 400, status: 'failed', message: '無法取得訂單：查詢條件缺少會員資料' }
     }
 
     // 訂單狀態
     if (query.status.length > 0) {
-      queryBuilder.andWhere('order.status IN (:...status)', { status: query.status });
+      queryBuilder.andWhere('order.status IN (:...status)', { status: query.status })
     }
 
     // 保姆是否已結案
     if (query.didFreelancerCloseTheOrder !== undefined) {
       queryBuilder.andWhere('order.did_freelancer_close_the_order = :didFreelancerCloseTheOrder', {
         didFreelancerCloseTheOrder: query.didFreelancerCloseTheOrder,
-      });
+      })
     }
 
     // 飼主是否已結案
     if (query.didOwnerCloseTheOrder !== undefined) {
       queryBuilder.andWhere('order.did_owner_close_the_order = :didOwnerCloseTheOrder', {
         didOwnerCloseTheOrder: query.didOwnerCloseTheOrder,
-      });
+      })
     }
 
     // 複製 queryBuilder 以進行計數查詢，避免影響原始查詢
-    const countQueryBuilder = queryBuilder.clone();
-    const total = await countQueryBuilder.getCount();
+    const countQueryBuilder = queryBuilder.clone()
+    const total = await countQueryBuilder.getCount()
 
-    queryBuilder.take(query.limit); // 設定每頁筆數
-    queryBuilder.skip((query.page - 1) * query.limit); // 設定要跳過的筆數
+    queryBuilder.take(query.limit) // 設定每頁筆數
+    queryBuilder.skip((query.page - 1) * query.limit) // 設定要跳過的筆數
 
-    const orders = await queryBuilder.getMany();
+    const orders = await queryBuilder.getMany()
     
     return {
       status: 'success',
@@ -544,7 +544,7 @@ async function ownerExpandOrders(orders) {
         .leftJoinAndSelect('order.service', 'service')
         .where('order.id IN (:...ids)', { ids: orderIds })
         .getMany()
-    ]);
+    ])
 
     const petMap = new Map(pets.map(pet => [pet.id, pet]))
     const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))

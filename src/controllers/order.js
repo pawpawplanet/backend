@@ -8,7 +8,7 @@ async function PostOrderReview(req, res, next) {
   console.log('成功進入 PostOrderReview')
 
   try {
-    const { id } = req.params
+    // const { id } = req.params
     const { orderId, rating, comment, reviewerId, revieweeId } = req.body
 
     if (!orderId || !rating || !reviewerId || !revieweeId || !comment) {
@@ -102,21 +102,21 @@ async function patchOrderStatus(req, res, next) {
 
     result = null
     switch (action) {
-      case 'accept':
-        result = await orderHelper.acceptOrder(id, orderId)
-        break
-      case 'reject':
-        result = await orderHelper.rejectOrder(id, orderId)
-        break
-      case 'cancel':
-        result = await orderHelper.cancelOrder(id, orderId)
-        break
-      case 'close':
-        result = role === orderHelper.USER_ROLES.OWNER ?
-          await orderHelper.ownerCloseOrder(id, orderId) : await orderHelper.freelancerCloseOrder(id, orderId)
-        break
-      default:
-        console.log('should not reach the default case')
+    case 'accept':
+      result = await orderHelper.acceptOrder(id, orderId)
+      break
+    case 'reject':
+      result = await orderHelper.rejectOrder(id, orderId)
+      break
+    case 'cancel':
+      result = await orderHelper.cancelOrder(id, orderId)
+      break
+    case 'close':
+      result = role === orderHelper.USER_ROLES.OWNER ?
+        await orderHelper.ownerCloseOrder(id, orderId) : await orderHelper.freelancerCloseOrder(id, orderId)
+      break
+    default:
+      console.log('should not reach the default case')
     }
 
     if (!result) {
@@ -133,7 +133,7 @@ async function patchOrderStatus(req, res, next) {
   }
 }
 
-async function getOrdersByRole(role, req, res, next) {
+async function getOrdersByRole(role, req) {
   try {
     const id = req.user.id
     const loginRole = req.user.role
@@ -149,36 +149,37 @@ async function getOrdersByRole(role, req, res, next) {
     if (validation.isUndefined(tag) || validation.isNotValidInteger(tag)
       || validation.isUndefined(limit) || validation.isNotValidInteger(limit) || limit <= 0
       || validation.isUndefined(page) || validation.isNotValidInteger(page) || page <= 0) {
-        return { statusCode: 400, status: 'failed', message: '欄位未填寫正確' }
+      return { statusCode: 400, status: 'failed', message: '欄位未填寫正確' }
     }
 
-    let result;
+    let result
     switch (tag) {
-      case orderHelper.ORDER_CAT_TAG.PENDING.value:
-      case orderHelper.ORDER_CAT_TAG.ACCEPTED.value:
-      case orderHelper.ORDER_CAT_TAG.PAID.value:
-      case orderHelper.ORDER_CAT_TAG.LATEST_RESPONSE.value:
-      case orderHelper.ORDER_CAT_TAG.CLOSE.value:
-        result = role === orderHelper.USER_ROLES.FREELANCER ?
-          await orderHelper.freelancerGetOrders(id, tag, limit, page) :
-          await orderHelper.ownerGetOrders(id, tag, limit, page)
-        break
-      default:
-        return { statusCode: 400, status: 'failed', message: `欄位未填寫正確：不支援的 tag(${tag})` }
+    case orderHelper.ORDER_CAT_TAG.PENDING.value:
+    case orderHelper.ORDER_CAT_TAG.ACCEPTED.value:
+    case orderHelper.ORDER_CAT_TAG.PAID.value:
+    case orderHelper.ORDER_CAT_TAG.LATEST_RESPONSE.value:
+    case orderHelper.ORDER_CAT_TAG.CLOSE.value:
+      result = role === orderHelper.USER_ROLES.FREELANCER ?
+        await orderHelper.freelancerGetOrders(id, tag, limit, page) :
+        await orderHelper.ownerGetOrders(id, tag, limit, page)
+      break
+    default:
+      return { statusCode: 400, status: 'failed', message: `欄位未填寫正確：不支援的 tag(${tag})` }
     }
 
     if (validation.isNotValidObject(result)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersByRole has no result...' }
     }
   
-    return result;
+    return result
   } catch (error) {
     throw validation.generateError('error', 'getOrdersByRole error', error)
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function PostOrder(req, res, next) {
-  console.log("新增訂單API")
+  console.log('新增訂單API')
   const {
     freelancer_id,
     service_id,
@@ -216,12 +217,12 @@ async function PostOrder(req, res, next) {
     const savedOrder = await orderRepository.save(newOrder)
 
     res.status(201).json({
-      status: "success",
-      message: "成功新增訂單",
+      status: 'success',
+      message: '成功新增訂單',
       data: {
         order_id: savedOrder.id
       }
-    });
+    })
 
   } catch (err) {
     console.error('建立訂單失敗:', err)
@@ -230,7 +231,7 @@ async function PostOrder(req, res, next) {
 }
 
 // 飼主取得當天其他等待付款的訂單清單
-async function getOrdersAcceptedOnSameDate(req, res, next) {
+async function getOrdersAcceptedOnSameDate(req, res) {
   try {
     const { id, role } = req.user
     const orderId = req.params.id
@@ -238,7 +239,7 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
     if (validation.isUndefined(orderId)) {
       return res.status(400).json({
         status: 'failed',
-        message: `欄位未填寫正確`
+        message: '欄位未填寫正確'
       })
     }
     
@@ -284,6 +285,7 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
       })
     }
 
+    // eslint-disable-next-line no-unused-vars
     const simplifiedData = result.data.map(({ pet, review, ...rest }) => rest)
     return res.status(result.statusCode).json({
       status: result.status,
@@ -301,7 +303,7 @@ async function getOrdersAcceptedOnSameDate(req, res, next) {
 }
 
 // 保姆取得當天其他等待接受的訂單清單
-async function getOrdersRequestedOnSameDate(req, res, next) {
+async function getOrdersRequestedOnSameDate(req, res) {
   try {
     const { id, role } = req.user
     const orderId = req.params.id
@@ -309,7 +311,7 @@ async function getOrdersRequestedOnSameDate(req, res, next) {
     if (validation.isUndefined(orderId)) {
       return res.status(400).json({
         status: 'failed',
-        message: `欄位未填寫正確`
+        message: '欄位未填寫正確'
       })
     }
     
@@ -353,7 +355,7 @@ async function getOrdersRequestedOnSameDate(req, res, next) {
       })
     }    
 
-    const result = await orderHelper.freelancerExpandOrders(ordersRequestedOnSameDate)
+    const result = await orderHelper.freelancerExpandOrders(otherOrders)
     if (validation.isNotValidObject(result)) {
       return res.status(500).json({
         status: 'error',
