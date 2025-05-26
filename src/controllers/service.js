@@ -38,7 +38,7 @@ async function getService(req, res, next) {
       .createQueryBuilder('service')
       .leftJoinAndSelect('service.freelancer', 'freelancer')
       .leftJoinAndSelect('freelancer.user', 'freelancerUser')
-      .leftJoinAndSelect('service.service_type', 'serviceType')
+      //.leftJoinAndSelect('service.service_type', 'serviceType')
       .where('service.enabled = true')
 
     if (service_type_id) {
@@ -114,10 +114,10 @@ async function getService(req, res, next) {
     })
       
     const services = rawServices.map(s => {
-      const firstImage = s.images?.split(',')[0] || null
+      const firstImage = Array.isArray(s.images) && s.images.length > 0 ? s.images[0] : null
       return {
         id: s.id,
-        title: s.service_type?.name,
+        title: s.service_type_id,
         description: s.description,
         //service_type_id: s.service_type_id,
         //freelancer_id: s.freelancer_id,
@@ -159,7 +159,13 @@ async function getService(req, res, next) {
 
   } catch (error){
     console.error('查詢服務失敗:', error)
-    next(error)
+    //next(error)
+
+    res.status(500).json({
+      message: '伺服器錯誤，請稍後再試',
+      status: 'error'
+    })
+
   }
 
 };
