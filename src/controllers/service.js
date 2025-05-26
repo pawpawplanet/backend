@@ -93,6 +93,19 @@ async function getService(req, res, next) {
     query.take(take).skip(skip)
       
     const [rawServices, total] = await query.getManyAndCount()
+
+    if (total === 0) {
+      return res.status(404).json({
+        message: '找不到符合條件的服務',
+        status: 'not_found',
+        data: {
+          services: [],
+          total: 0,
+          page: parseInt(page),
+          limit: take,
+        }
+      })
+    }
       
     const serviceIds = rawServices.map(s => s.id)
     const reviews = await reviewRepo
