@@ -11,6 +11,8 @@ async function getService(req, res, next) {
   try {
     const {
       service_type_id,
+      city,
+      area,
       date,
       min_price,
       max_price,
@@ -21,11 +23,16 @@ async function getService(req, res, next) {
 
     let dateFilter = null
     if (date === '不限') {
-      // 不加任何條件
+    // 不加任何條件
     } else if (date === '一個禮拜內') {
       const today = DateTime.now().toISODate()
       const weekLater = DateTime.now().plus({ days: 7 }).toISODate()
       dateFilter = { start: today, end: weekLater }
+    } else if (date.includes(',')) {
+      const [start, end] = date.split(',').map(d => d.trim())
+      if (Date.parse(start) && Date.parse(end)) {
+        dateFilter = { start, end }
+      }
     } else if (Date.parse(date)) {
       dateFilter = { exact: date }
     }
@@ -43,6 +50,14 @@ async function getService(req, res, next) {
 
     if (service_type_id) {
       query.andWhere('service.service_type_id = :service_type_id', { service_type_id })
+    }
+
+    if (city) {
+      query.andWhere('freelancerUser.city = :city', { city })
+    }
+
+    if (area) {
+      query.andWhere('freelancerUser.area = :area', { area })
     }
 
     if (dateFilter?.exact) {
