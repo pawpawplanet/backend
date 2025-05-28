@@ -1,6 +1,8 @@
 const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
 const order = require('./order')
+const dayjs = require('dayjs')
+const { dataSource } = require('../db/data-source')
 
 async function getOrders(req, res, next) {
   try {
@@ -26,6 +28,56 @@ async function getOrders(req, res, next) {
   }
 }
 
+// 取得自己的已付款日期(服務即將進行)
+async function getReservedDates(req, res, next) {
+  try {
+    const { id: ownerId, role } = req.user
+
+    if (role !== orderHelper.USER_ROLES.OWNER) {
+      return res.status(403).json({
+        status: 'failed',
+        message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
+      })
+    }
+
+    const DAYS_AHEAD = 7
+    const startDayJSDate = dayjs().add(1, 'day')
+    const endDayJSDate = dayjs().add(DAYS_AHEAD, 'day')
+
+    const availableDates = []
+    for (let i = 1; i <= DAYS_AHEAD; i++) {
+      const dayJSDate = dayjs().add(i, 'day')
+      availableDates.push(dayJSDate.toDate())
+    }
+
+    const orderRepo = dataSource.getRepository('Order')
+    const orders = await orderRepo
+      .createQueryBuilder('order')
+      .where('order.owner_id = :ownerId ', { ownerId })
+      .andWhere('order.status = :status', { status: orderHelper.ORDER_STATUS.PAID })
+      .andWhere('order.service_date IN (:...dates)', { dates: availableDates })
+      .getMany()
+
+    const reservedStrDates = orders.map(order => order.service_date)
+      .map(date => dayjs(date).format('YYYY-MM-DD'))
+
+
+    return res.status(200).json({
+      status: 'success',
+      message: '成功',
+      data: {
+        start_date: startDayJSDate.format('YYYY-MM-DD'),
+        end_date: endDayJSDate.format('YYYY-MM-DD'),
+        reserved_dates: reservedStrDates
+      }
+    })
+  } catch (error) {
+    console.error('getSchedule error:', error)
+    next(error)
+  }
+}
+
 module.exports = {
-  getOrders
+  getOrders,
+  getReservedDates
 }

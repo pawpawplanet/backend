@@ -337,7 +337,7 @@ async function getFreelancerServiceDetail(req, res, next) {
   }
 }
 
-// 取得指定保姆的可接案日期
+// 飼主取得指定保姆的可接案日期
 async function getSchedule(req, res, next) {
   try {
     const { role } = req.user
