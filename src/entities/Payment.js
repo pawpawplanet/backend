@@ -36,8 +36,8 @@ module.exports = new EntitySchema({
       nullable: true
     },
 
-    paid_at: {
-      type: 'data',
+    paid_at: { // 需要 timezone，用以處理 ecpay checksum
+      type: 'timestamptz',
       nullable: 'true'
     },
 
