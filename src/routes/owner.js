@@ -5,5 +5,6 @@ const owner = require('../controllers/owner')
 const authenticateToken = require('../middlewares/auth')
 
 router.get('/orders', authenticateToken, owner.getOrders)
+router.get('/reserved-dates', authenticateToken, owner.getReservedDates)
 
 module.exports = router
