@@ -1,6 +1,7 @@
 const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
+const paymentHelper = require('../lib/payment-helpers')
 const { Not } = require('typeorm')
 
 
@@ -378,6 +379,130 @@ async function getOrdersRequestedOnSameDate(req, res) {
   }
 }
 
+async function postOrderPayment(req, res, next) {
+  try {
+    const { id } = req.user
+    const orderId = req.params.id
+
+    if (!orderId) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+    }
+
+    // 取得 order
+    const orderRepo = dataSource.getRepository('Order')
+    const order = await orderRepo.findOne({
+      where: { id: orderId }
+    })
+
+    if (!order || order.owner_id !== id) {
+      res.status(400).json({
+        status: 'failed',
+        message: '無法存取訂單，不是您的訂單'
+      })
+    }
+
+    // 新增 payment
+    const paymentRepo = dataSource.getRepository('Payment')
+    const payment = paymentRepo.create({
+      order: orderId,
+      amount: order.price,
+      paid_at: new Date()
+    })
+    await paymentRepo.save(payment)
+
+    // 假 order
+    const data = {
+      id: `1234567${Date.now().toString()}`,
+      price: 700,
+      description: '測試'
+    }
+
+    const result = paymentHelper.prepareECPayData(data, payment)
+    if (!result) {
+      return res.status(500).json({
+        status: 'error',
+        message: '伺服器錯誤：prepareECPayData has no result...'
+      })
+    }
+
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message,
+      data: result.data
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// 綠界完成付費處理後，在背景通知 backend 
+async function postECPayResult(req, res, next) {
+  try{
+    console.log('postECPayResult req.body: ', req.body)
+
+    const data = req.body
+    const orderId = req.params.id
+
+    if (!orderId || !data) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '綠界未傳送完整金流資訊'
+      })
+    }
+
+    const orderRepo = dataSource.getRepository('Order')
+    const order = await orderRepo.findOne({
+      where: { id: orderId }
+    })
+
+    if (!order) {
+      res.status(500).json({
+        status: 'failed',
+        message: '無法存取訂單'
+      })
+    }
+
+    const paymentRepo = dataSource.getRepository('Payment')
+    const payment = await paymentRepo.findOne({
+      where: { order_id: orderId }
+    })
+
+    if (!payment) {
+      res.status(500).json({
+        status: 'failed',
+        message: '無法存取帳單'
+      })
+    }
+
+    if (!paymentHelper.validateECPayData(data, order, payment)) {
+      res.status(500).json({
+        status: 'failed',
+        message: '綠界驗證碼驗證失敗'
+      })
+    }
+
+    // 再依據 post body 準備 paymentData
+    const paymentData = data
+    const result = orderHelper.payOrder(orderId, paymentData)
+    if (!result) {
+      res.status(500).json({
+        status: 'failed',
+        message: '綠界驗證碼驗證失敗'
+      })
+    }
+    
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message
+    })
+  } catch(error) {
+    next(error)
+  }  
+}
+
 module.exports = {
   PostOrderReview,
   PostOrder,
@@ -385,5 +510,7 @@ module.exports = {
   patchOrderStatus,
   getOrdersByRole,
   getOrdersAcceptedOnSameDate,
-  getOrdersRequestedOnSameDate
+  getOrdersRequestedOnSameDate,
+  postOrderPayment,
+  postECPayResult
 }

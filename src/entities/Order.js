@@ -169,6 +169,14 @@ module.exports = new EntitySchema({
       cascade: true,
       eager: false,
       // nullable: true,   // 不需要，定義在 review's joinColumn
+    },
+
+    payment: {
+      type: 'one-to-one',
+      target: 'Payment',
+      inverseSide: 'order', 
+      cascade: true,
+      eager: false,
     }
   },
 })
