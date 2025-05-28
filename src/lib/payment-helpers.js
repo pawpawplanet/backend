@@ -1,27 +1,28 @@
-require('dotenv').config();
+require('dotenv').config()
 const ECPayPayment = require('ecpay_aio_nodejs')
 const config = require('../config/index')
 const { ORDER_STATUS } = require('../lib/order-helpers')
+const crypto = require('crypto')
 
 const options = {
-  "OperationMode": "Test", //Test or Production
-  "MercProfile": {
-    "MerchantID": config.get('ecpay.merchantID'),
-    "HashKey": config.get('ecpay.hashKey'),
-    "HashIV": config.get('ecpay.hashIV')
+  'OperationMode': 'Test', //Test or Production
+  'MercProfile': {
+    'MerchantID': config.get('ecpay.merchantID'),
+    'HashKey': config.get('ecpay.hashKey'),
+    'HashIV': config.get('ecpay.hashIV')
   },
-  "ChoosePayment": "ALL",
-  "IgnorePayment": [
-    "ATM",
-    "CVS",
-    "BARCODE",
-    "AndroidPay",
-    "TWQR",
-    "ApplePay",
-    "BNPL",
-    "WeiXin"
+  'ChoosePayment': 'ALL',
+  'IgnorePayment': [
+    'ATM',
+    'CVS',
+    'BARCODE',
+    'AndroidPay',
+    'TWQR',
+    'ApplePay',
+    'BNPL',
+    'WeiXin'
   ],
-  "IsProjectContractor": false
+  'IsProjectContractor': false
 }
 
 function prepareECPayData(order, payment) {
@@ -77,12 +78,12 @@ function getPaymentDateTimeFormatted(paid_at) {
 
 function generateCheckValue(params) {
   //將 params 從 Object 換成 Array
-  const entries = Object.entries(params);
+  const entries = Object.entries(params)
 
   //第一步，將 params 按照 key 值得字母順序排列
   entries.sort((a, b) => {
-    return a[0].localeCompare(b[0]);
-  });
+    return a[0].localeCompare(b[0])
+  })
 
   //第二步，用 key1=value1&key2=value2... 這樣的 pattern 將所有 params 串聯成字串
   //並前後加上 HashKey & HashIV 的 value
@@ -90,10 +91,10 @@ function generateCheckValue(params) {
   let result =
     `HashKey=${config.get('ecpay.hashKey')}&` +
     entries.map((x) => `${x[0]}=${x[1]}`).join('&') +
-    `&HashIV=${config.get('ecpay.hashIV') }`;
+    `&HashIV=${config.get('ecpay.hashIV') }`
 
   //第三步，encode URL 並轉換成小寫
-  result = encodeURIComponent(result).toLowerCase();
+  result = encodeURIComponent(result).toLowerCase()
 
   //第四步，因爲 URL encode 是 follow RFC 1866
   //使用 js 的encodeURIComponent() 還需要處理一下
@@ -106,13 +107,13 @@ function generateCheckValue(params) {
     .replace(/%2a/g, '*')
     .replace(/%28/g, '(')
     .replace(/%29/g, ')')
-    .replace(/%20/g, '+');
+    .replace(/%20/g, '+')
 
   //第五步，轉成 SHA256
-  result = SHA256(result).toString();
+  result = crypto.createHash('sha256').update(result).digest('hex')
 
   //最後，轉成大寫
-  return result.toUpperCase();
+  return result.toUpperCase()
 }
 
 module.exports = {

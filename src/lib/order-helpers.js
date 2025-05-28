@@ -226,9 +226,7 @@ async function freelancerCloseOrder(userId, orderId) {
 }
 
 // 更新 order & payment 並將當天其他訂單會 ”自動” 取消
-async function payOrder(orderId, paymentData) {
-  payment.success = true
- 
+async function payOrder(orderId, paymentData) { 
   const queryRunner = dataSource.createQueryRunner()
 
   try {
@@ -269,6 +267,7 @@ async function payOrder(orderId, paymentData) {
     // 調整訂單狀態  
     order.status = ORDER_STATUS.PAID
     order.payment.success = true
+    // 利用 paymentData 調整 order.payment
     if (!gonnaCancelledOrders && gonnaCancelledOrders > 0) {
       gonnaCancelledOrders.forEach(order => {
         order.status = ORDER_STATUS.CANCELLED

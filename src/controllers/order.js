@@ -458,7 +458,7 @@ async function postECPayResult(req, res, next) {
       where: { id: orderId }
     })
 
-    if (!order || order.owner_id !== id) {
+    if (!order) {
       res.status(500).json({
         status: 'failed',
         message: '無法存取訂單'
@@ -484,6 +484,8 @@ async function postECPayResult(req, res, next) {
       })
     }
 
+    // 再依據 post body 準備 paymentData
+    const paymentData = data
     const result = orderHelper.payOrder(orderId, paymentData)
     if (!result) {
       res.status(500).json({
