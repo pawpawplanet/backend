@@ -225,6 +225,76 @@ async function freelancerCloseOrder(userId, orderId) {
   }
 }
 
+// 更新 order & payment 並將當天其他訂單會 ”自動” 取消
+async function payOrder(orderId, paymentData) {
+  payment.success = true
+ 
+  const queryRunner = dataSource.createQueryRunner()
+
+  try {
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
+    const orderRepo = queryRunner.manager.getRepository('Order')
+    const order = await orderRepo.findOne({ where: { id: orderId } })
+
+    if (!order) {
+      await queryRunner.rollbackTransaction()
+      return { statusCode: 400, status: 'failed', message: '無法存取訂單' }
+    }
+
+    if (order.status !== ORDER_STATUS.ACCEPTED) {
+      await queryRunner.rollbackTransaction()
+      return { statusCode: 422, status: 'failed', message: '無法為訂單付款，訂單狀態已改變' }
+    }
+
+    const otherOrdersOnSameDate = await orderRepo
+      .find({
+        where: {
+          id: Not(order.id),
+          service_date: order.service_date,
+          status: In([ORDER_STATUS.PENDING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PAID]),
+        }
+      })
+
+    const gonnaCancelledOrders = otherOrdersOnSameDate.filter(order => order.status === ORDER_STATUS.PENDING 
+      || order.status === ORDER_STATUS.ACCEPTED)
+    const paidOrders = otherOrdersOnSameDate.filter(order => order.status === ORDER_STATUS.PAID)
+
+    if (!paidOrders && paidOrders.length > 0) {
+      await queryRunner.rollbackTransaction()
+      return { statusCode: 400, status: 'failed', message: '無法為訂單付款，您當天已有其他完成付款預約' }
+    }
+
+    // 調整訂單狀態  
+    order.status = ORDER_STATUS.PAID
+    order.payment.success = true
+    if (!gonnaCancelledOrders && gonnaCancelledOrders > 0) {
+      gonnaCancelledOrders.forEach(order => {
+        order.status = ORDER_STATUS.CANCELLED
+        order.did_owner_close_the_order = true
+      })
+    }
+
+    const orders = (!gonnaCancelledOrders && gonnaCancelledOrders.length > 0) ? [...order, ...gonnaCancelledOrders] : [order]
+    await orderRepo.save(orders)
+
+    await queryRunner.commitTransaction()
+    return { statusCode: 200, status: 'success', message: '成功為訂單付款', data: { order_status: ORDER_STATUS.ACCEPTED } }
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction()
+    console.error('payOrder 發生錯誤:', error)
+    return {
+      status: 'error',
+      statusCode: 500,
+      message: `為訂單付款時發生錯誤: ${error.message}`,
+      errorDetails: error,
+    }
+  } finally {
+    await queryRunner.release()
+  }
+}
 
 // === api/{role}/orders?tag={tag}&limit={limit}&page={page} related ===
 async function freelancerGetOrders(userId, tag, limit, page) {
@@ -657,6 +727,7 @@ module.exports = {
   cancelOrder,
   ownerCloseOrder,
   freelancerCloseOrder,
+  payOrder,
 
   freelancerGetOrders,
   ownerGetOrders,
