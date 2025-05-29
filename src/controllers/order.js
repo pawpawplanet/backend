@@ -503,6 +503,42 @@ async function postECPayResult(req, res, next) {
   }  
 }
 
+// 飼主取得帳單
+async function getOrderPayment(req, res, next) {
+  try {
+    const { id } = req.user
+    const orderId = req.params.id
+
+    if (!orderId) {
+      return res.status(400).json({
+        status: 'failed',
+        message: '欄位未填寫正確'
+      })
+    }
+
+    const orderRepo = dataSource.getRepository('Order')
+    const order = await orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['payment']
+    })
+
+    if (!order || order.owner_id !== id) {
+      res.status(400).json({
+        status: 'failed',
+        message: '無法存取訂單'
+      })
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      message: '成功',
+      data: {...order.payment}
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   PostOrderReview,
   PostOrder,
@@ -512,5 +548,6 @@ module.exports = {
   getOrdersAcceptedOnSameDate,
   getOrdersRequestedOnSameDate,
   postOrderPayment,
-  postECPayResult
+  postECPayResult,
+  getOrderPayment
 }

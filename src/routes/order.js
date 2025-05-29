@@ -11,5 +11,6 @@ router.get('/:id/same-date/accepted', authenticateToken, orders.getOrdersAccepte
 router.get('/:id/same-date/requested', authenticateToken, orders.getOrdersRequestedOnSameDate)
 router.post('/:id/payment', authenticateToken, orders.postOrderPayment)
 router.post('/:id/ecpay-result', orders.postECPayResult)
+router.get('/:id/payment', authenticateToken, orders.getOrderPayment)
 
 module.exports = router
