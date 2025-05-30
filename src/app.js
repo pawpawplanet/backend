@@ -7,6 +7,7 @@ const serviceRouter = require('./routes/service')
 const uploadRouter = require('./routes/upload')
 const orderRouter = require('./routes/order')
 const ownerRouter = require('./routes/owner')
+const petRouter = require('./routes/pet')
 
 const app = express()
 app.use(cors())
@@ -24,6 +25,8 @@ app.use('/api/services', serviceRouter)
 
 app.use('/api/orders', orderRouter)
 app.use('/api/owners', ownerRouter)
+
+app.use('/api/pets', petRouter)
 
 // 404： 處理未匹配的路由
 app.use((req, res) => {
