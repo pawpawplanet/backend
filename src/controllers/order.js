@@ -407,12 +407,13 @@ async function postOrderPayment(req, res, next) {
     // 新增 payment
     const paymentRepo = dataSource.getRepository('Payment')
     const payment = paymentRepo.create({
-      order: orderId,
+      order_id: orderId,
       amount: order.price,
       paid_at: new Date()
     })
-    await paymentRepo.save(payment)
 
+    await paymentRepo.save(payment)
+    return
     // 假 order
     const data = {
       id: `1234567${Date.now().toString()}`,
