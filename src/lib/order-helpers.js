@@ -73,7 +73,7 @@ async function acceptOrder(userId, orderId) {
       })
     }
 
-    const orders = (!validation.isUndefined(pendingOrders) && pendingOrders.length > 0) ? [...order, ...pendingOrders] : [order]
+    const orders = (!pendingOrders || pendingOrders.length === 0) ? [order] : [{...order}, ...pendingOrders]
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
@@ -275,7 +275,7 @@ async function payOrder(orderId, paymentData) {
       })
     }
 
-    const orders = (!gonnaCancelledOrders && gonnaCancelledOrders.length > 0) ? [...order, ...gonnaCancelledOrders] : [order]
+    const orders = (!gonnaCancelledOrders || gonnaCancelledOrders.length === 0) ? [{...order}, ...gonnaCancelledOrders] : [order]
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
