@@ -16,14 +16,14 @@ async function getService(req, res, next) {
       date,
       min_price,
       max_price,
-      sort, // 'newest' or 'rating'
+      sort, // 'newest' | 'oldest' | 'rating'
       limit = 10,
       page = 1,
     } = req.query
 
     let dateFilter = null
     if (date === '不限') {
-    // 不加任何條件
+      // 不加條件
     } else if (date === '一個禮拜內') {
       const today = DateTime.now().toISODate()
       const weekLater = DateTime.now().plus({ days: 7 }).toISODate()
@@ -36,8 +36,7 @@ async function getService(req, res, next) {
     } else if (Date.parse(date)) {
       dateFilter = { exact: date }
     }
-  
-          
+
     const serviceRepo = dataSource.getRepository('Service')
     const reviewRepo = dataSource.getRepository('Review')
 
@@ -45,7 +44,6 @@ async function getService(req, res, next) {
       .createQueryBuilder('service')
       .leftJoinAndSelect('service.freelancer', 'freelancer')
       .leftJoinAndSelect('freelancer.user', 'freelancerUser')
-      //.leftJoinAndSelect('service.service_type', 'serviceType')
       .where('service.enabled = true')
 
     if (service_type_id) {
@@ -84,35 +82,34 @@ async function getService(req, res, next) {
         return `NOT EXISTS ${subQuery}`
       })
     }
-      
-      
+
     if (min_price) {
       query.andWhere('service.price >= :min_price', { min_price })
     }
-      
+
     if (max_price) {
       query.andWhere('service.price <= :max_price', { max_price })
     }
-      
-      
-    if (sort === 'rating') {
-      query.orderBy('service.created_at', 'DESC')
-    } else {
-      // 預設或 newest 排序
-      query.orderBy('service.created_at', 'DESC')
-    }
 
+    // 排序邏輯整合
+    let orderBy = { field: 'service.created_at', order: 'DESC' }
+    if (sort === 'oldest') {
+      orderBy.order = 'ASC'
+    } else if (sort === 'rating') {
+      orderBy.order = 'DESC' // 保持順序，稍後 JS 再排序評分
+    }
+    query.orderBy(orderBy.field, orderBy.order)
 
     const take = parseInt(limit)
     const skip = (parseInt(page) - 1) * take
     query.take(take).skip(skip)
-      
+
     const [rawServices, total] = await query.getManyAndCount()
 
     if (total === 0) {
-      return res.status(404).json({
-        message: '找不到符合條件的服務',
-        status: 'not_found',
+      return res.status(200).json({
+        message: '查詢成功，但沒有符合條件的服務',
+        status: 'success',
         data: {
           services: [],
           total: 0,
@@ -121,18 +118,18 @@ async function getService(req, res, next) {
         }
       })
     }
-      
+
     const serviceIds = rawServices.map(s => s.id)
     const reviews = await reviewRepo
       .createQueryBuilder('review')
-      .leftJoin('review.order', 'order') // 重點：join 到 order 拿 service_id
+      .leftJoin('review.order', 'order')
       .select('order.service_id', 'service_id')
       .addSelect('AVG(review.rating)', 'avg_rating')
       .addSelect('COUNT(*)', 'count')
-      .where('order.service_id IN (:...serviceIds)', { serviceIds }) // 改用 order.service_id
+      .where('order.service_id IN (:...serviceIds)', { serviceIds })
       .groupBy('order.service_id')
       .getRawMany()
-      
+
     const reviewMap = {}
     reviews.forEach(r => {
       reviewMap[r.service_id] = {
@@ -140,18 +137,15 @@ async function getService(req, res, next) {
         review_count: parseInt(r.count),
       }
     })
-      
-    const services = rawServices.map(s => {
+
+    let services = rawServices.map(s => {
       const firstImage = Array.isArray(s.images) && s.images.length > 0 ? s.images[0] : null
       return {
         id: s.id,
-        title: s.service_type_id,
+        title: s.title,
         description: s.description,
-        //service_type_id: s.service_type_id,
-        //freelancer_id: s.freelancer_id,
         price: s.price,
         price_unit: s.price_unit,
-        //address: `${s.freelancer.city}${s.freelancer.area}`,
         image: firstImage,
         rating: reviewMap[s.id]?.rating || 0,
         review_count: reviewMap[s.id]?.review_count || 0,
@@ -162,14 +156,17 @@ async function getService(req, res, next) {
           phone: s.freelancer.user?.phone || '',
           city: s.freelancer.user?.city || '',
           area: s.freelancer.user?.area || '',
+          latitude: s.freelancer.latitude ?? null,
+          longitude: s.freelancer.longitude ?? null,
         }
       }
     })
 
+    // 若排序為 rating，前端額外排序一次
     if (sort === 'rating') {
       services.sort((a, b) => b.rating - a.rating)
     }
-      
+
     res.status(200).json({
       message: '成功',
       status: 'success',
@@ -180,23 +177,15 @@ async function getService(req, res, next) {
         limit: take,
       }
     })
-      
-
-
-
-
-  } catch (error){
+  } catch (error) {
     console.error('查詢服務失敗:', error)
-    //next(error)
-
     res.status(500).json({
       message: '伺服器錯誤，請稍後再試',
       status: 'error'
     })
-
   }
+}
 
-};
 
 
 async function getServiceReviews(req, res, next) {
@@ -251,8 +240,8 @@ async function getServiceReviews(req, res, next) {
       comment: r.comment,
       created_at: r.created_at,
       service_date: r.order?.service_date,
-      owner_name: r.user?.name|| null,
-      owner_avatar: r.user?.avatar|| null,
+      owner_name: r.user?.name || null,
+      owner_avatar: r.user?.avatar || null,
     }))
 
     return res.status(200).json({
@@ -288,11 +277,11 @@ async function getServiceDetail(req, res, next) {
       .andWhere('service.enabled = true')
       .getOne()
 
-    console.log('service',service)
+    console.log('service', service)
     if (!service) {
-      return res.status(404).json({ 
-        status: 'failed', 
-        message: '找不到該服務' 
+      return res.status(404).json({
+        status: 'failed',
+        message: '找不到該服務'
       })
     }
 

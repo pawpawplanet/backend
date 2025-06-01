@@ -13,7 +13,7 @@ module.exports = new EntitySchema({
       type: 'uuid',
       nullable: false, // 必須指定 user_id
     },
-    
+
     // working_days: {
     //   type: 'varchar',// 例如 ['1', '2']
     //   array: true,
@@ -58,6 +58,16 @@ module.exports = new EntitySchema({
       default: 0,
     },
 
+    latitude: {
+      type: 'float',
+      nullable: true,
+    },
+
+    longitude: {
+      type: 'float',
+      nullable: true,
+    },
+
     created_at: {
       type: 'timestamp',
       createDate: true,
@@ -68,7 +78,7 @@ module.exports = new EntitySchema({
       updateDate: true,
     },
   },
-  
+
   relations: {
     // user: {
     //   type: 'one-to-one',
