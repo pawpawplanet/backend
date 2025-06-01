@@ -33,7 +33,7 @@ async function acceptOrder(userId, orderId) {
     const orderRepo = queryRunner.manager.getRepository('Order')
     const order = await orderRepo.findOne({ where: { id: orderId } })
 
-    if (validation.isUndefined(freelancer) || validation.isUndefined(order)) {
+    if (!freelancer || !order) {
       await queryRunner.rollbackTransaction()
       return { statusCode: 400, status: 'failed', message: '無法存取訂單' }
     }
@@ -77,8 +77,17 @@ async function acceptOrder(userId, orderId) {
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
-    return { statusCode: 200, status: 'success', message: '成功接受預約', data: { order_status: ORDER_STATUS.ACCEPTED } }
-
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.ACCEPTED,
+        target_tag: {
+          value: ORDER_CAT_TAG.ACCEPTED.value,
+          caption: ORDER_CAT_TAG.ACCEPTED.captions[USER_ROLES.FREELANCER]
+        }
+      }}
   } catch (error) {
     await queryRunner.rollbackTransaction()
     console.error('acceptOrder 發生錯誤:', error)
@@ -113,8 +122,18 @@ async function rejectOrder(userId, orderId) {
     order.status = ORDER_STATUS.REJECTED
     order.did_freelancer_close_the_order = true
     await orderRepo.save(order)
-    return { statusCode: 200, status: 'success', message: '成功拒絕預約', data: { order_status: ORDER_STATUS.REJECTED } }
-
+   
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.REJECTED,
+        target_tag: {
+          value: ORDER_CAT_TAG.CLOSE.value,
+          caption: ORDER_CAT_TAG.CLOSE.captions[USER_ROLES.FREELANCER]
+        }
+      }}
   } catch (error) {
     console.error('rejectOrder 發生錯誤:', error)
     return {
@@ -147,8 +166,17 @@ async function cancelOrder(userId, orderId) {
     order.did_owner_close_the_order = true
     await orderRepo.save(order) 
 
-    return { statusCode: 200, status: 'success', message: '成功取消預約', data: { order_status: ORDER_STATUS.CANCELLED } }
-
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.CANCELLED,
+        target_tag: {
+          value: ORDER_CAT_TAG.CLOSE.value,
+          caption: ORDER_CAT_TAG.CLOSE.captions[USER_ROLES.OWNER]
+        }
+      }}    
   } catch (error) {
     return {
       status: 'error',
@@ -179,8 +207,17 @@ async function ownerCloseOrder(userId, orderId) {
     order.did_owner_close_the_order = true
     
     await orderRepo.save(order)
-    return { statusCode: 200, status: 'success', message: '成功結案', data: { order_status: order.status } }
-
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.CLOSE,
+        target_tag: {
+          value: ORDER_CAT_TAG.CLOSE.value,
+          caption: ORDER_CAT_TAG.CLOSE.captions[USER_ROLES.OWNER]
+        }
+      }}  
   } catch (error) {
     console.log('ownerCloseOrder error:', error)
     return {
@@ -212,8 +249,18 @@ async function freelancerCloseOrder(userId, orderId) {
     order.did_freelancer_close_the_order = true
 
     await orderRepo.save(order)
-    return { statusCode: 200, status: 'success', message: '成功結案', data: { order_status: order.status } }
-
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.CLOSE,
+        target_tag: {
+          value: ORDER_CAT_TAG.CLOSE.value,
+          caption: ORDER_CAT_TAG.CLOSE.captions[USER_ROLES.FREELANCER]
+        }
+      }
+    }  
   } catch (error) {
     console.log('freelancerCloseOrder error:', error)
     return {
