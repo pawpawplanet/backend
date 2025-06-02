@@ -8,6 +8,7 @@ const uploadRouter = require('./routes/upload')
 const orderRouter = require('./routes/order')
 const ownerRouter = require('./routes/owner')
 const petRouter = require('./routes/pet')
+const recommendationsRouter = require('./routes/recommendations')
 
 const app = express()
 app.use(cors())
@@ -25,6 +26,7 @@ app.use('/api/services', serviceRouter)
 
 app.use('/api/orders', orderRouter)
 app.use('/api/owners', ownerRouter)
+app.use('/api/recommendations', recommendationsRouter)
 
 app.use('/api/pets', petRouter)
 
