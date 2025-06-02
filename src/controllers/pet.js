@@ -10,15 +10,15 @@ function isNotValidBoolean(value) {
   return typeof value !== 'boolean'
 }
 
-function isNotSelect(value) {
-  //1狗2貓3鳥
-  //1小2中3大
-  return value !== 1 && value !== 2 && value !== 3
+function isNotSelectThree(value) {
+  //0小1中2大
+  return value !== 0 && value !== 1 && value !== 2
 }
 
-function isNotGender(value) {
-  //1男2女
-  return value !== 1 && value !== 2
+function isNotSelectTwo(value) {
+  //0男1女
+  //0貓1狗
+  return value !== 0 && value !== 1
 }
 
 async function getPet(req, res, next) {
@@ -69,8 +69,8 @@ async function postPet(req, res, next) {
     }
 
     const { name, birthday, species_id, is_ligation, gender, size_id, personality_description, health_description, note, avatar } = req.body
-    if (validation.isNotValidSting(name) || isNotValidDate(birthday) || isNotSelect(species_id)
-      || isNotValidBoolean(is_ligation) || isNotGender(gender) || isNotSelect(size_id)
+    if (validation.isNotValidSting(name) || isNotValidDate(birthday) || isNotSelectTwo(species_id)
+      || isNotValidBoolean(is_ligation) || isNotSelectTwo(gender) || isNotSelectThree(size_id)
       || validation.isUndefined(personality_description) || validation.isUndefined(health_description)
       || validation.isUndefined(note) || validation.isUndefined(avatar)) {
       return res.status(400).json({
@@ -131,8 +131,8 @@ async function patchPet(req, res, next) {
     }
 
     const { name, birthday, species_id, is_ligation, gender, size_id, personality_description, health_description, note, avatar } = req.body
-    if (validation.isNotValidSting(name) || isNotValidDate(birthday) || isNotSelect(species_id)
-      || isNotValidBoolean(is_ligation) || isNotGender(gender) || isNotSelect(size_id)
+    if (validation.isNotValidSting(name) || isNotValidDate(birthday) || isNotSelectTwo(species_id)
+      || isNotValidBoolean(is_ligation) || isNotSelectTwo(gender) || isNotSelectThree(size_id)
       || validation.isUndefined(personality_description) || validation.isUndefined(health_description)
       || validation.isUndefined(note) || validation.isUndefined(avatar)) {
       return res.status(400).json({
