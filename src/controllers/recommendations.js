@@ -33,7 +33,7 @@ async function getRecommendations(req, res, next) {
         })
 
         let services = rawServices.map(s => {
-            const firstImage = s.images.length > 0 ? s.images?.split(',')[0] || null : ''
+            const firstImage = s.images.length > 0 ? s.images[0] : null
             return {
                 id: s.id,
                 freelancer_name: s.freelancer.user.name,
