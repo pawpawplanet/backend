@@ -200,6 +200,20 @@ async function PostOrder(req, res, next) {
   try {
     const orderRepository = dataSource.getRepository('Order')
 
+    const existingOrder = await orderRepository.findOne({
+      where: {
+        freelancer_id,
+        service_date
+      }
+    })
+
+    if (existingOrder) {
+      return res.status(200).json({
+        status: 'failed',
+        message: '該服務人員當日已有預約，請選擇其他時間'
+      })
+    }
+
     const newOrder = orderRepository.create({
       freelancer_id,
       service_id,
