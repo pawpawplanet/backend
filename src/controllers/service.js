@@ -251,6 +251,7 @@ async function getServiceReviews(req, res, next) {
         reviews: formatted,
         total,
         page: parseInt(page),
+        limit: take,
         //perPage: take,
         //totalPages: Math.ceil(total / take),
       },
