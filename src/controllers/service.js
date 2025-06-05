@@ -259,7 +259,10 @@ async function getServiceReviews(req, res, next) {
 
   } catch (error) {
     console.error('查詢服務失敗:', error)
-    next(error)
+    return res.status(500).json({
+      status: 'error',
+      message: '伺服器錯誤，請稍後再試',
+    })
   }
 }
 
