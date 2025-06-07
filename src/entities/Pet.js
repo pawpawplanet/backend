@@ -85,7 +85,7 @@ module.exports = new EntitySchema({
 
     avatar: {
       type: 'varchar',
-      length: 255,
+      length: 1024,
       nullable: true,
     },
 
