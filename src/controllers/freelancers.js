@@ -5,6 +5,7 @@ const orderHelper = require('../lib/order-helpers')
 const order = require('./order')
 const dayjs = require('dayjs')
 const validation = require('../utils/validation')
+const districts = require('../data/taiwan-districts.json')
 
 function generateCalendar({ working_days, is_weekly_mode }) {
   const today = dayjs()
@@ -166,6 +167,19 @@ async function updateFreelancerProfile(req, res, next) {
       working_days, is_weekly_mode, bank_account 
     } = req.body
 
+    //將地區轉換成經緯度
+    let latitude, longitude
+    const match = districts.find(item => item.name.includes(city + area))
+    if (match) {
+      latitude = match.location.lat
+      longitude = match.location.lng
+    } else {
+      return res.status(404).json({
+        status: 'failed',
+        message: '找不到對應的經緯度資料'
+      })
+    }
+
     const userRepo = dataSource.getRepository('User')
     const freelancerRepo = dataSource.getRepository('Freelancer')
 
@@ -181,7 +195,7 @@ async function updateFreelancerProfile(req, res, next) {
     await userRepo.save(user)
 
     // 更新 freelancer 資料
-    Object.assign(freelancer, { working_days, is_weekly_mode, bank_account })
+    Object.assign(freelancer, { working_days, is_weekly_mode, bank_account, latitude, longitude })
     await freelancerRepo.save(freelancer)
 
     res.status(200).json({
