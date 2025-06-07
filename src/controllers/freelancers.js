@@ -1,4 +1,5 @@
 // const { P } = require('pino') // fix eslint warnings
+const { IsNull, Not } = require('typeorm')
 const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('FreelancersController')
 const orderHelper = require('../lib/order-helpers')
@@ -7,19 +8,39 @@ const dayjs = require('dayjs')
 const validation = require('../utils/validation')
 const districts = require('../data/taiwan-districts.json')
 
-function generateCalendar({ working_days, is_weekly_mode }) {
+
+function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
   const today = dayjs()
   const schedule = []
 
+  //先把訂單轉成 map，加速查詢
+  const orderMap = new Map()
+  orders.forEach(order => {
+    const dateStr = dayjs(order.service_date).format('YYYY-MM-DD')
+    orderMap.set(dateStr, order.status)//將dateStr當成staus的key
+  })
+    
   for (let i = 0; i < 7; i++) {
     const date = today.add(i, 'day')
+    const dateStr = date.format('YYYY-MM-DD')
     const weekday = date.day()
-    const status = is_weekly_mode
+
+    let status = is_weekly_mode
       ? working_days.includes(weekday) ? '可接案' : '休假'
       : '休假'
 
+    //如果有該天的單，依照狀態覆蓋
+    if (orderMap.has(dateStr)) {
+      const orderStatus = orderMap.get(dateStr)
+      if ([1, 2].includes(orderStatus)) {
+        status = '有約'  // accepted 或 paid
+      } else if (orderStatus === 0) {
+        status = '待回覆' //pending
+      }
+    }
+
     schedule.push({
-      date: date.format('YYYY-MM-DD'),
+      date: dateStr,
       weekday,
       status,
     })
@@ -47,6 +68,7 @@ async function getFreelancerProfile(req, res, next) {
     
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const serviceRepo = dataSource.getRepository('Service')
+    const orderRepo = dataSource.getRepository('Order')
 
     const profile = await freelancerRepo.findOne({
       where: { user_id: id },
@@ -62,9 +84,17 @@ async function getFreelancerProfile(req, res, next) {
     }
     const { user, ...freelancer } = profile
 
+    const orders = await orderRepo.find({
+      where: {
+        freelancer_id: profile.id,
+        service_date: Not(IsNull())// 保險一點，只查有日期的
+      },
+      select: ['service_date', 'status']
+    })
     const calendar = generateCalendar({
       working_days: profile.working_days,
-      is_weekly_mode: profile.is_weekly_mode
+      is_weekly_mode: profile.is_weekly_mode,
+      orders
     })
 
     console.log('calendar',calendar)
