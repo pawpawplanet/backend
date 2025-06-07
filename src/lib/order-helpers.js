@@ -569,21 +569,23 @@ function expandOrder(order, user, pet, service, review) {
     pet: {
       name: pet.name,
       species_id: pet.species_id,
-      size: pet.size,
+      size: pet.size_id,
       birthday: pet.birthday,
       gender: pet.gender,
       personality_description: pet.personality_description,
-      avatar: pet.avatar,
+      avatar: pet.avatar
     },
     service: {
       name: service.name,
       service_type_id: service.service_type_id,
       price: service.price,
       price_unit: service.price_unit,
+      title: service.title
     },
     order: {
       id: order.id,
       service_date: order.service_date,
+      price: order.price,
       note: order.note,
       status: order.status,
       did_freelancer_close_the_order: order.did_freelancer_close_the_order,
