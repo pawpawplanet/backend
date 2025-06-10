@@ -1,12 +1,13 @@
 const { dataSource } = require('../db/data-source')
 const dayjs = require('dayjs')
-const utc = require('dayjs/plugin/utc');        // 引入 UTC 插件
-const timezone = require('dayjs/plugin/timezone');  // 引入 timezone 插件
+const utc = require('dayjs/plugin/utc')        // 引入 UTC 插件
+const timezone = require('dayjs/plugin/timezone')  // 引入 timezone 插件
 const orderHelper = require('../lib/order-helpers')
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
+// eslint-disable-next-line no-unused-vars
 function ping(req, res, next) {
   console.log('scheduler: wake the server up......')
   const now = new Date()
@@ -23,6 +24,7 @@ function ping(req, res, next) {
   })
 }
 
+// eslint-disable-next-line no-unused-vars
 async function closeDueOrders(req, res, next) {
   console.log('scheduler: update due orders......')
 

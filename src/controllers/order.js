@@ -418,7 +418,7 @@ async function postOrderPayment(req, res, next) {
         message: '無法存取訂單，不是您的訂單'
       })
 
-      return;
+      return
     }
 
     if (order.payment) {
@@ -427,7 +427,7 @@ async function postOrderPayment(req, res, next) {
         message: '已有帳單資訊，無法再次付款'
       })
 
-      return;
+      return
     }
 
     // 新增 payment
@@ -485,7 +485,6 @@ async function postECPayResult(req, res, next) {
       })
     }
 
-    // if (!paymentHelper.validateECPayResultData(data, order, payment)) {
     if (!paymentHelper.validateECPayResultData(paymentData)) {
       res.status(500).json({
         status: 'failed',

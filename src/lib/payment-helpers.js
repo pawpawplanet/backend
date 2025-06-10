@@ -1,5 +1,4 @@
 require('dotenv').config()
-const ECPayPayment = require('ecpay_aio_nodejs')
 const config = require('../config/index')
 const { ORDER_CAT_TAG } = require('../lib/order-helpers')
 const crypto = require('crypto')
@@ -52,8 +51,6 @@ function prepareECPayData(order, payment) {
     CustomField1: payment.id
   }
 
-  // const create = new ECPayPayment(options)
-  // const html = create.payment_client.aio_check_out_all(base_param)
   const CheckMacValue = generateCheckValue(base_param)
 
   return { 
@@ -64,11 +61,7 @@ function prepareECPayData(order, payment) {
   }
 }
 
-function validateECPayResultData(paymentData, order, payment) {
-  // if (!order || !payment) {
-  //   return { statusCode: 500, status: 'failed', message: '伺服器錯誤：沒有訂單、帳單資訊' }
-  // }
-
+function validateECPayResultData(paymentData) {
   const { CheckMacValue: checkMacValue, ...param } = paymentData
   return (checkMacValue === generateCheckValue(param))
 }
