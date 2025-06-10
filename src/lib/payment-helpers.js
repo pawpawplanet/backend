@@ -1,7 +1,7 @@
 require('dotenv').config()
 const ECPayPayment = require('ecpay_aio_nodejs')
 const config = require('../config/index')
-const { ORDER_STATUS } = require('../lib/order-helpers')
+const { ORDER_CAT_TAG } = require('../lib/order-helpers')
 const crypto = require('crypto')
 
 const options = {
@@ -32,40 +32,44 @@ function prepareECPayData(order, payment) {
 
   const BACKEND_HOST = config.get('ecpay.backendHost')
   const FRONTEND_HOST = config.get('ecpay.frontendHost')
-  const no = order.id.replace(/-/g, '').slice(0, 20);
+  const no = `1234567${Date.now().toString()}`//order.id.replace(/-/g, '').slice(0, 20);
   const time = getPaymentDateTimeFormatted(payment.paid_at)
   const priceStr = String(order.price || 0)
   const base_param = {
+    MerchantID: options.MercProfile.MerchantID,
     MerchantTradeNo: no,
+    PaymentType: 'aio',
+    ChoosePayment: options.ChoosePayment,
+    EncryptType: 1,
+    IgnorePayment: options.IgnorePayment.join('#'),
     MerchantTradeDate: time,
     TotalAmount: priceStr,
     TradeDesc: order.description || '測試交易描述',
-    ItemName: '測試訂單',
-    ReturnURL: `${BACKEND_HOST}/api/order/${order.id}/ecpay-result`,
-    ClientBackURL: `${FRONTEND_HOST}/api/owners/orders?tag=${ORDER_STATUS.PAID}&limit=10&page=1index.html`, // 消費者點選此按鈕後，會將頁面導回到此設定的網址
+    ItemName: order.service.title || '測試訂單',
+    ReturnURL: `${BACKEND_HOST}/api/orders/${order.id}/ecpay-result`,
+    ClientBackURL: `${FRONTEND_HOST}/owner-order-management?tag=${ORDER_CAT_TAG.PAID.value}&limit=10&page=1`, // 消費者點選此按鈕後，會將頁面導回到此設定的網址
     // OrderResultURL: `${FRONTEND_HOST}/ecpay-result`, // 有別於ReturnURL (server端的網址)，OrderResultURL為特店的client端(前端)網址。消費者付款完成後，綠界會將付款結果參數以POST方式回傳到到該網址。詳細說明請參考付款結果通知。; 若與[ClientBackURL]同時設定，將會以此參數為主
     CustomField1: payment.id
   }
 
-  const create = new ECPayPayment(options)
-  const html = create.payment_client.aio_check_out_all(base_param)
+  // const create = new ECPayPayment(options)
+  // const html = create.payment_client.aio_check_out_all(base_param)
+  const CheckMacValue = generateCheckValue(base_param)
 
   return { 
     statusCode: 200, 
     status: 'success', 
     message: '成功產生付款資訊',
-    data: html 
+    data: { ...base_param, CheckMacValue } 
   }
 }
 
-function validateECPayData(data, order, payment) {
-  if (!order || !payment) {
-    return { statusCode: 500, status: 'failed', message: '伺服器錯誤：沒有訂單、帳單資訊' }
-  }
+function validateECPayResultData(paymentData, order, payment) {
+  // if (!order || !payment) {
+  //   return { statusCode: 500, status: 'failed', message: '伺服器錯誤：沒有訂單、帳單資訊' }
+  // }
 
-  // 將送給綠界的 prepared ECPay data 取出，產生驗證碼(e.g. payment methods 相關資訊不包含在內...)
-  const { CheckMacValue: checkMacValue , ...param } = data
-  
+  const { CheckMacValue: checkMacValue, ...param } = paymentData
   return (checkMacValue === generateCheckValue(param))
 }
 
@@ -123,5 +127,5 @@ function generateCheckValue(params) {
 
 module.exports = {
   prepareECPayData,
-  validateECPayData
+  validateECPayResultData
 }

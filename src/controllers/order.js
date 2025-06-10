@@ -430,7 +430,6 @@ async function postOrderPayment(req, res, next) {
       return;
     }
 
-
     // 新增 payment
     const paymentRepo = dataSource.getRepository('Payment')
     const payment = paymentRepo.create({
@@ -448,12 +447,11 @@ async function postOrderPayment(req, res, next) {
       })
     }
     
-    res.render('checkout', { title: 'Express', html: result.data });
-    // return res.status(result.statusCode).json({
-    //   status: result.status,
-    //   message: result.message,
-    //   data: result.data
-    // })
+    return res.status(result.statusCode).json({
+      status: result.status,
+      message: result.message,
+      data: result.data
+    })
   } catch (error) {
     next(error)
   }
@@ -462,12 +460,12 @@ async function postOrderPayment(req, res, next) {
 // 綠界完成付費處理後，在背景通知 backend 
 async function postECPayResult(req, res, next) {
   try{
-    console.log('postECPayResult req.body: ', req.body)
-
-    const data = req.body
+    const paymentData = req.body
     const orderId = req.params.id
 
-    if (!orderId || !data) {
+    // console.log('----------------------------- postECPayResult data:', paymentData)
+    // console.log('----------------------------- postECPayResult orderId:', orderId)
+    if (!orderId || !paymentData) {
       return res.status(400).json({
         status: 'failed',
         message: '綠界未傳送完整金流資訊'
@@ -476,7 +474,8 @@ async function postECPayResult(req, res, next) {
 
     const orderRepo = dataSource.getRepository('Order')
     const order = await orderRepo.findOne({
-      where: { id: orderId }
+      where: { id: orderId },
+      relations: ['payment']
     })
 
     if (!order) {
@@ -486,28 +485,25 @@ async function postECPayResult(req, res, next) {
       })
     }
 
-    const paymentRepo = dataSource.getRepository('Payment')
-    const payment = await paymentRepo.findOne({
-      where: { order_id: orderId }
-    })
+    // if (!paymentHelper.validateECPayResultData(data, order, payment)) {
+    if (!paymentHelper.validateECPayResultData(paymentData)) {
+      res.status(500).json({
+        status: 'failed',
+        message: '綠界驗證碼驗證失敗'
+      })
+    } 
 
-    if (!payment) {
+    if (!order.payment) {
       res.status(500).json({
         status: 'failed',
         message: '無法存取帳單'
       })
     }
 
-    if (!paymentHelper.validateECPayData(data, order, payment)) {
-      res.status(500).json({
-        status: 'failed',
-        message: '綠界驗證碼驗證失敗'
-      })
-    }
-
     // 再依據 post body 準備 paymentData
-    const paymentData = data
-    const result = orderHelper.payOrder(orderId, paymentData)
+    // const paymentData = data
+    // const result = orderHelper.payTheOrder(orderId, paymentData)
+    const result = await orderHelper.payTheOrder(order, paymentData)
     if (!result) {
       res.status(500).json({
         status: 'failed',
@@ -515,10 +511,12 @@ async function postECPayResult(req, res, next) {
       })
     }
     
-    return res.status(result.statusCode).json({
-      status: result.status,
-      message: result.message
-    })
+    console.log('-------------------------- result: ', result)
+    res.send('1|OK')
+    // return res.status(result.statusCode).json({
+    //   status: result.status,
+    //   message: result.message
+    // })
   } catch(error) {
     next(error)
   }  
@@ -543,6 +541,7 @@ async function getOrderPayment(req, res, next) {
       relations: ['payment']
     })
 
+    console.log('------------------------- order:', order)
     if (!order || order.owner_id !== id) {
       res.status(400).json({
         status: 'failed',
