@@ -273,40 +273,35 @@ async function freelancerCloseOrder(userId, orderId) {
 }
 
 // 更新 order & payment 並將當天其他訂單會 ”自動” 取消
-async function payOrder(orderId, paymentData) { 
+async function payTheOrder(theOrder, paymentData) { 
   const queryRunner = dataSource.createQueryRunner()
 
   try {
     await queryRunner.connect()
     await queryRunner.startTransaction()
 
-    const orderRepo = queryRunner.manager.getRepository('Order')
-    const order = await orderRepo.findOne({ where: { id: orderId } })
-
-    if (!order) {
-      await queryRunner.rollbackTransaction()
-      return { statusCode: 400, status: 'failed', message: '無法存取訂單' }
-    }
-
+    const order = theOrder
     if (order.status !== ORDER_STATUS.ACCEPTED) {
       await queryRunner.rollbackTransaction()
       return { statusCode: 422, status: 'failed', message: '無法為訂單付款，訂單狀態已改變' }
     }
 
+    const orderRepo = queryRunner.manager.getRepository('Order')
     const otherOrdersOnSameDate = await orderRepo
       .find({
         where: {
+          owner_id: order.owner_id,
           id: Not(order.id),
           service_date: order.service_date,
           status: In([ORDER_STATUS.PENDING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PAID]),
         }
       })
 
-    const gonnaCancelledOrders = otherOrdersOnSameDate.filter(order => order.status === ORDER_STATUS.PENDING 
-      || order.status === ORDER_STATUS.ACCEPTED)
-    const paidOrders = otherOrdersOnSameDate.filter(order => order.status === ORDER_STATUS.PAID)
+    const gonnaCancelledOrders = otherOrdersOnSameDate.filter(o => o.status === ORDER_STATUS.PENDING 
+      || o.status === ORDER_STATUS.ACCEPTED)
+    const paidOrders = otherOrdersOnSameDate.filter(o => o.status === ORDER_STATUS.PAID)
 
-    if (!paidOrders && paidOrders.length > 0) {
+    if (paidOrders && paidOrders.length > 0) {
       await queryRunner.rollbackTransaction()
       return { statusCode: 400, status: 'failed', message: '無法為訂單付款，您當天已有其他完成付款預約' }
     }
@@ -314,23 +309,26 @@ async function payOrder(orderId, paymentData) {
     // 調整訂單狀態  
     order.status = ORDER_STATUS.PAID
     order.payment.success = true
+    order.payment.method = paymentData.PaymentType || ''
+
     // 利用 paymentData 調整 order.payment
-    if (!gonnaCancelledOrders && gonnaCancelledOrders > 0) {
-      gonnaCancelledOrders.forEach(order => {
-        order.status = ORDER_STATUS.CANCELLED
-        order.did_owner_close_the_order = true
+    if (gonnaCancelledOrders && gonnaCancelledOrders.length > 0) {
+      gonnaCancelledOrders.forEach(o => {
+        o.status = ORDER_STATUS.CANCELLED
+        o.did_owner_close_the_order = true
       })
     }
 
-    const orders = (!gonnaCancelledOrders || gonnaCancelledOrders.length === 0) ? [{...order}, ...gonnaCancelledOrders] : [order]
+    const orders = (gonnaCancelledOrders && gonnaCancelledOrders.length > 0) ? [{...order}, ...gonnaCancelledOrders] : [order]
+    console.log('gonna orders:', orders)
     await orderRepo.save(orders)
 
     await queryRunner.commitTransaction()
-    return { statusCode: 200, status: 'success', message: '成功為訂單付款', data: { order_status: ORDER_STATUS.ACCEPTED } }
+    return { statusCode: 200, status: 'success', message: '成功為訂單付款', data: { order_status: ORDER_STATUS.PAID } }
 
   } catch (error) {
     await queryRunner.rollbackTransaction()
-    console.error('payOrder 發生錯誤:', error)
+    console.error('payTheOrder 發生錯誤:', error)
     return {
       status: 'error',
       statusCode: 500,
@@ -776,7 +774,7 @@ module.exports = {
   cancelOrder,
   ownerCloseOrder,
   freelancerCloseOrder,
-  payOrder,
+  payTheOrder,
 
   freelancerGetOrders,
   ownerGetOrders,
