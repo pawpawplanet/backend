@@ -32,7 +32,7 @@ function prepareECPayData(order, payment) {
 
   const BACKEND_HOST = config.get('ecpay.backendHost')
   const FRONTEND_HOST = config.get('ecpay.frontendHost')
-  const no = `${order.id}_001`
+  const no = order.id.replace(/-/g, '').slice(0, 20);
   const time = getPaymentDateTimeFormatted(payment.paid_at)
   const priceStr = String(order.price || 0)
   const base_param = {
@@ -50,7 +50,12 @@ function prepareECPayData(order, payment) {
   const create = new ECPayPayment(options)
   const html = create.payment_client.aio_check_out_all(base_param)
 
-  return html
+  return { 
+    statusCode: 200, 
+    status: 'success', 
+    message: '成功產生付款資訊',
+    data: html 
+  }
 }
 
 function validateECPayData(data, order, payment) {

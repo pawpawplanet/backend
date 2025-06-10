@@ -399,7 +399,7 @@ async function postOrderPayment(req, res, next) {
     const orderId = req.params.id
 
     if (!orderId) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -408,15 +408,28 @@ async function postOrderPayment(req, res, next) {
     // 取得 order
     const orderRepo = dataSource.getRepository('Order')
     const order = await orderRepo.findOne({
-      where: { id: orderId }
+      where: { id: orderId },
+      relations: ['service', 'payment'],
     })
 
     if (!order || order.owner_id !== id) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '無法存取訂單，不是您的訂單'
       })
+
+      return;
     }
+
+    if (order.payment) {
+      res.status(200).json({
+        status: 'failed',
+        message: '已有帳單資訊，無法再次付款'
+      })
+
+      return;
+    }
+
 
     // 新增 payment
     const paymentRepo = dataSource.getRepository('Payment')
@@ -427,27 +440,20 @@ async function postOrderPayment(req, res, next) {
     })
 
     await paymentRepo.save(payment)
-    return
-    // 假 order
-    const data = {
-      id: `1234567${Date.now().toString()}`,
-      price: 700,
-      description: '測試'
-    }
-
-    const result = paymentHelper.prepareECPayData(data, payment)
+    const result = paymentHelper.prepareECPayData(order, payment)
     if (!result) {
       return res.status(500).json({
         status: 'error',
         message: '伺服器錯誤：prepareECPayData has no result...'
       })
     }
-
-    return res.status(result.statusCode).json({
-      status: result.status,
-      message: result.message,
-      data: result.data
-    })
+    
+    res.render('checkout', { title: 'Express', html: result.data });
+    // return res.status(result.statusCode).json({
+    //   status: result.status,
+    //   message: result.message,
+    //   data: result.data
+    // })
   } catch (error) {
     next(error)
   }
