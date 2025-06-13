@@ -301,11 +301,11 @@ async function getOrdersAcceptedOnSameDate(req, res) {
     }
 
     // eslint-disable-next-line no-unused-vars
-    const simplifiedData = result.data.map(({ pet, review, ...rest }) => rest)
+    // const simplifiedData = result.data.map(({ pet, review, ...rest }) => rest)
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
-      data: simplifiedData 
+      data: result.data 
     })
   } catch (error) {
     console.error('getOrdersAcceptedOnSameDate error:', error)
@@ -441,12 +441,12 @@ async function postOrderPayment(req, res, next) {
     await paymentRepo.save(payment)
     const result = paymentHelper.prepareECPayData(order, payment)
     if (!result) {
-      return res.status(500).json({
+      return res.status(200).json({
         status: 'error',
         message: '伺服器錯誤：prepareECPayData has no result...'
       })
     }
-    
+
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
