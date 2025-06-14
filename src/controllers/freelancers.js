@@ -19,7 +19,7 @@ function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
     const dateStr = dayjs(order.service_date).format('YYYY-MM-DD')
     orderMap.set(dateStr, order.status)//將dateStr當成staus的key
   })
-    
+
   for (let i = 0; i < 7; i++) {
     const date = today.add(i, 'day')
     const dateStr = date.format('YYYY-MM-DD')
@@ -73,7 +73,7 @@ async function getFreelancerProfile(req, res, next) {
         message: '認證失敗，請確認登入狀態'
       })
     }
-    
+
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const serviceRepo = dataSource.getRepository('Service')
     const orderRepo = dataSource.getRepository('Order')
@@ -147,7 +147,7 @@ async function getFreelancerProfile(req, res, next) {
 async function postFreelancerProfile(req, res, next) {
   try {
     const { id } = req.user
-    const { 
+    const {
       name, city, area, phone, description, avatar, //user 欄位
       working_days, is_weekly_mode, bank_account //freelancer 欄位
     } = req.body
@@ -164,7 +164,7 @@ async function postFreelancerProfile(req, res, next) {
         message: '認證失敗，請確認登入狀態'
       })
     }
-    
+
     existingUser.name = name
     existingUser.city = city
     existingUser.area = area
@@ -200,8 +200,8 @@ async function updateFreelancerProfile(req, res, next) {
   try {
     const { id } = req.user
     const {
-      name, city, area, phone, description, avatar, 
-      working_days, is_weekly_mode, bank_account 
+      name, city, area, phone, description, avatar,
+      working_days, is_weekly_mode, bank_account
     } = req.body
 
     //將地區轉換成經緯度
@@ -259,7 +259,7 @@ async function getOrders(req, res, next) {
     const result = await order.getOrdersByRole(orderHelper.USER_ROLES.FREELANCER, req, res, next)
 
     if (validation.isNotValidObject(result)) {
-      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
+      return { statusCode: 200, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
     }
 
     const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode)
@@ -289,12 +289,12 @@ async function createOrUpdateService(req, res, next) {
 
     const validTypes = [0, 1, 2, 3]
     if (!validTypes.includes(service_type_id)) {
-      return res.status(200).json({ 
-        status: 'failed', 
-        message: 'service_type_id 數據錯誤' 
+      return res.status(200).json({
+        status: 'failed',
+        message: 'service_type_id 數據錯誤'
       })
     }
-      
+
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const freelancer = await freelancerRepo.findOneBy({ user_id: id })
     if (!freelancer) {
@@ -315,23 +315,23 @@ async function createOrUpdateService(req, res, next) {
       freelancer_id: freelancer.id,
       service_type_id,
       enabled,
-      title, 
+      title,
       description,
       price,
-      price_unit, 
-      allowed_pet_types, 
-      allowed_pet_ages, 
+      price_unit,
+      allowed_pet_types,
+      allowed_pet_ages,
       allowed_pet_sizes,
-      allowed_pet_genders, 
-      images, 
+      allowed_pet_genders,
+      images,
       extra_options
     })
 
     const saved = await repo.save(service)
-    res.status(200).json({ 
-      status: 'success', 
-      message: '儲存成功', 
-      data: saved 
+    res.status(200).json({
+      status: 'success',
+      message: '儲存成功',
+      data: saved
     })
   } catch(error) {
     console.error('新增或更新服務失敗：', error)
@@ -356,8 +356,8 @@ async function getFreelancerServiceDetail(req, res, next) {
       .getOne()
 
     if (!service) {
-      return res.status(200).json({ 
-        status: 'success', data: null 
+      return res.status(200).json({
+        status: 'success', data: null
       })
     }
 
@@ -395,14 +395,14 @@ async function getSchedule(req, res, next) {
     const { id: freelancerId } = req.params
 
     if (!freelancerId) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
     }
-    
+
     if (role !== orderHelper.USER_ROLES.OWNER) {
-      return res.status(403).json({
+      return res.status(200).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })
@@ -413,7 +413,7 @@ async function getSchedule(req, res, next) {
 
     const freelancer = await freelancerRepo.findOne({ where: { id: freelancerId}})
     if (!freelancer) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '無法取得可接案日期：找不到保姆資料'
       })
@@ -421,7 +421,7 @@ async function getSchedule(req, res, next) {
 
     const workingDays = freelancer.working_days
     if (!Array.isArray(workingDays)) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '無法取得可接案日期：找不到可接案 weekday'
       })
@@ -436,7 +436,7 @@ async function getSchedule(req, res, next) {
     const availableDates = []
     const finalWorkingDayJSDate = finalWorkingDate ? dayjs(finalWorkingDate).tz('Asia/Taipei') : endDayJSDate
     for (let i = 1; i <= DAYS_AHEAD; i++) {
-      const dayJSDate = today.add(i, 'day')      
+      const dayJSDate = today.add(i, 'day')
       if (dayJSDate.isBefore(finalWorkingDayJSDate.add(1, 'day')) && workingDays.includes(dayJSDate.day())) {
         // availableDates.push(dayJSDate.toDate())
         availableDates.push(dayJSDate.format('YYYY-MM-DD'))
@@ -464,7 +464,7 @@ async function getSchedule(req, res, next) {
 
     const serviceStrDates = orders.map(order => order.service_date)
       .map(date => dayjs(date).tz('Asia/Taipei').format('YYYY-MM-DD'))
-    const resultStrDates = availableDates.filter(strDate => !serviceStrDates.includes(strDate));  
+    const resultStrDates = availableDates.filter(strDate => !serviceStrDates.includes(strDate));
 
     return res.status(200).json({
       status: 'success',
@@ -474,7 +474,7 @@ async function getSchedule(req, res, next) {
         end_date: endDayJSDate.format('YYYY-MM-DD'),
         available_dates: resultStrDates
       }
-    })  
+    })
   } catch (error) {
     console.error('getSchedule error:', error)
     next(error)

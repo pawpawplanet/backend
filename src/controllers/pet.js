@@ -42,9 +42,9 @@ async function getPet(req, res, next) {
 
 async function postPet(req, res, next) {
   try {
-    const { id } = req.user 
+    const { id } = req.user
     if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '請提供資料'
       })
@@ -53,7 +53,7 @@ async function postPet(req, res, next) {
     const userRepo = dataSource.getRepository('User')
     const user = await userRepo.findOne({ where: { id } })
     if (!user) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '使用者不存在'
       })
@@ -62,7 +62,7 @@ async function postPet(req, res, next) {
     const petRepo = dataSource.getRepository('Pet')
     const pet = await petRepo.findOne({ where: { owner_id: id} })
     if(pet){
-      return res.status(409).json({
+      return res.status(200).json({
         status: 'failed',
         message: '資料重複'
       })
@@ -73,7 +73,7 @@ async function postPet(req, res, next) {
       || isNotValidBoolean(is_ligation) || isNotSelectTwo(gender) || isNotSelectThree(size_id)
       || validation.isUndefined(personality_description) || validation.isUndefined(health_description)
       || validation.isUndefined(note) || validation.isUndefined(avatar)) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -106,7 +106,7 @@ async function patchPet(req, res, next) {
   try {
     const { id } = req.user
     if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '請提供資料'
       })
@@ -115,7 +115,7 @@ async function patchPet(req, res, next) {
     const userRepo = dataSource.getRepository('User')
     const user = await userRepo.findOne({ where: { id } })
     if (!user) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '使用者不存在'
       })
@@ -124,7 +124,7 @@ async function patchPet(req, res, next) {
     const petRepo = dataSource.getRepository('Pet')
     const pet = await petRepo.findOne({ where: { owner_id: id} })
     if(!pet){
-      return res.status(409).json({
+      return res.status(200).json({
         status: 'failed',
         message: '找不到對應的寵物資料'
       })
@@ -135,7 +135,7 @@ async function patchPet(req, res, next) {
       || isNotValidBoolean(is_ligation) || isNotSelectTwo(gender) || isNotSelectThree(size_id)
       || validation.isUndefined(personality_description) || validation.isUndefined(health_description)
       || validation.isUndefined(note) || validation.isUndefined(avatar)) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })

@@ -13,7 +13,7 @@ async function PostOrderReview(req, res, next) {
     const { orderId, rating, comment, reviewerId, revieweeId } = req.body
 
     if (!orderId || !rating || !reviewerId || !revieweeId || !comment) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'error',
         message: '缺少必要欄位 (orderId, rating, reviewerId, revieweeId)',
       })
@@ -29,14 +29,14 @@ async function PostOrderReview(req, res, next) {
     })
 
     if (!order) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'error',
         message: '找不到該訂單',
       })
     }
 
     if (order.review) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'error',
         message: '該訂單已經有評論',
       })
@@ -73,7 +73,7 @@ async function PostOrderReview(req, res, next) {
       review_count: parseInt(count, 10)
     })
 
-    return res.status(201).json({
+    return res.status(200).json({
       status: 'success',
       message: '評論新增成功',
       // data: {
@@ -100,7 +100,7 @@ async function patchOrderStatus(req, res, next) {
 
     if (validation.isUndefined(action) || validation.isNotValidSting(action)
       || validation.isUndefined(orderId) || validation.isNotValidSting(orderId)) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -154,7 +154,7 @@ async function getOrdersByRole(role, req) {
     const loginRole = req.user.role
 
     if (loginRole !== role) {
-      return { statusCode: 403, status: 'failed', message: `未經授權：您的角色 (${loginRole}) 沒有執行此 API 的權限` }
+      return { statusCode: 200, status: 'failed', message: `未經授權：您的角色 (${loginRole}) 沒有執行此 API 的權限` }
     }
 
     const tag = parseInt(req.query.tag)
@@ -164,7 +164,7 @@ async function getOrdersByRole(role, req) {
     if (validation.isUndefined(tag) || validation.isNotValidInteger(tag)
       || validation.isUndefined(limit) || validation.isNotValidInteger(limit) || limit <= 0
       || validation.isUndefined(page) || validation.isNotValidInteger(page) || page <= 0) {
-      return { statusCode: 400, status: 'failed', message: '欄位未填寫正確' }
+      return { statusCode: 200, status: 'failed', message: '欄位未填寫正確' }
     }
 
     let result
@@ -179,13 +179,13 @@ async function getOrdersByRole(role, req) {
         await orderHelper.ownerGetOrders(id, tag, limit, page)
       break
     default:
-      return { statusCode: 400, status: 'failed', message: `欄位未填寫正確：不支援的 tag(${tag})` }
+      return { statusCode: 200, status: 'failed', message: `欄位未填寫正確：不支援的 tag(${tag})` }
     }
 
     if (validation.isNotValidObject(result)) {
-      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersByRole has no result...' }
+      return { statusCode: 200, status: 'failed', message: '伺服器錯誤：getOrdersByRole has no result...' }
     }
-  
+
     return result
   } catch (error) {
     throw validation.generateError('error', 'getOrdersByRole error', error)
@@ -245,7 +245,7 @@ async function PostOrder(req, res, next) {
 
     const savedOrder = await orderRepository.save(newOrder)
 
-    res.status(201).json({
+    res.status(200).json({
       status: 'success',
       message: '成功新增訂單',
       data: {
@@ -266,14 +266,14 @@ async function getOrdersAcceptedOnSameDate(req, res) {
     const orderId = req.params.id
 
     if (validation.isUndefined(orderId)) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
     }
-    
+
     if (role !== orderHelper.USER_ROLES.OWNER) {
-      return res.status(403).json({
+      return res.status(200).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })
@@ -282,7 +282,7 @@ async function getOrdersAcceptedOnSameDate(req, res) {
     const orderRepo = dataSource.getRepository('Order')
     const order= await orderRepo.findOne({ where: { id: orderId } })
     if (validation.isNotValidObject(order) || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 ${orderHelper.ORDER_STATUS.ACCEPTED}`
       })
@@ -296,19 +296,19 @@ async function getOrdersAcceptedOnSameDate(req, res) {
           service_date: order.service_date,
           status: orderHelper.ORDER_STATUS.ACCEPTED,
         }
-      })  
-     
+      })
+
     if (otherOrders.length === 0) {
       return res.status(200).json({
         status: 'success',
         message: '成功',
         data: []
       })
-    }  
+    }
 
     const result = await orderHelper.ownerExpandOrders(otherOrders)
     if (validation.isNotValidObject(result)) {
-      return res.status(500).json({
+      return res.status(200).json({
         status: 'error',
         message: '伺服器錯誤：ownerExpandOrders has no result...'
       })
@@ -319,7 +319,7 @@ async function getOrdersAcceptedOnSameDate(req, res) {
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
-      data: result.data 
+      data: result.data
     })
   } catch (error) {
     console.error('getOrdersAcceptedOnSameDate error:', error)
@@ -338,14 +338,14 @@ async function getOrdersRequestedOnSameDate(req, res) {
     const orderId = req.params.id
 
     if (validation.isUndefined(orderId)) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
     }
-    
+
     if (role !== orderHelper.USER_ROLES.FREELANCER) {
-      return res.status(403).json({
+      return res.status(200).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })
@@ -357,10 +357,10 @@ async function getOrdersRequestedOnSameDate(req, res) {
       freelancerRepo.findOne({ where: { user_id: id} }),
       orderRepo.findOne({ where: { id: orderId } })
     ])
-    
-    if (validation.isNotValidObject(freelancer) || validation.isNotValidObject(order) 
+
+    if (validation.isNotValidObject(freelancer) || validation.isNotValidObject(order)
       || order.status !== orderHelper.ORDER_STATUS.PENDING ) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 (${orderHelper.ORDER_STATUS.PENDING})`
       })
@@ -382,11 +382,11 @@ async function getOrdersRequestedOnSameDate(req, res) {
         message: '成功',
         data: []
       })
-    }    
+    }
 
     const result = await orderHelper.freelancerExpandOrders(otherOrders)
     if (validation.isNotValidObject(result)) {
-      return res.status(500).json({
+      return res.status(200).json({
         status: 'error',
         message: '伺服器錯誤：freelancerExpandOrders has no result...'
       })
@@ -471,7 +471,7 @@ async function postOrderPayment(req, res, next) {
   }
 }
 
-// 綠界完成付費處理後，在背景通知 backend 
+// 綠界完成付費處理後，在背景通知 backend
 async function postECPayResult(req, res, next) {
   try{
     const paymentData = req.body
@@ -480,7 +480,7 @@ async function postECPayResult(req, res, next) {
     // console.log('----------------------------- postECPayResult data:', paymentData)
     // console.log('----------------------------- postECPayResult orderId:', orderId)
     if (!orderId || !paymentData) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '綠界未傳送完整金流資訊'
       })
@@ -493,7 +493,7 @@ async function postECPayResult(req, res, next) {
     })
 
     if (!order) {
-      res.status(500).json({
+      res.status(200).json({
         status: 'failed',
         message: '無法存取訂單'
       })
@@ -501,14 +501,14 @@ async function postECPayResult(req, res, next) {
 
     // if (!paymentHelper.validateECPayResultData(data, order, payment)) {
     if (!paymentHelper.validateECPayResultData(paymentData)) {
-      res.status(500).json({
+      res.status(200).json({
         status: 'failed',
         message: '綠界驗證碼驗證失敗'
       })
-    } 
+    }
 
     if (!order.payment) {
-      res.status(500).json({
+      res.status(200).json({
         status: 'failed',
         message: '無法存取帳單'
       })
@@ -519,12 +519,12 @@ async function postECPayResult(req, res, next) {
     // const result = orderHelper.payTheOrder(orderId, paymentData)
     const result = await orderHelper.payTheOrder(order, paymentData)
     if (!result) {
-      res.status(500).json({
+      res.status(200).json({
         status: 'failed',
         message: '綠界驗證碼驗證失敗'
       })
     }
-    
+
     console.log('-------------------------- result: ', result)
     res.send('1|OK')
     // return res.status(result.statusCode).json({
@@ -533,7 +533,7 @@ async function postECPayResult(req, res, next) {
     // })
   } catch(error) {
     next(error)
-  }  
+  }
 }
 
 // 飼主取得帳單
@@ -543,7 +543,7 @@ async function getOrderPayment(req, res, next) {
     const orderId = req.params.id
 
     if (!orderId) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -557,7 +557,7 @@ async function getOrderPayment(req, res, next) {
 
     console.log('------------------------- order:', order)
     if (!order || order.owner_id !== id) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '無法存取訂單'
       })

@@ -9,7 +9,7 @@ async function getOrders(req, res, next) {
     const result = await order.getOrdersByRole(orderHelper.USER_ROLES.OWNER, req, res, next)
 
     if (validation.isNotValidObject(result)) {
-      return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
+      return { statusCode: 200, status: 'failed', message: '伺服器錯誤：getOrders has no result...' }
     }
 
     const isSuccess = !validation.isNotSuccessStatusCode(result.statusCode)
@@ -34,7 +34,7 @@ async function getReservedDates(req, res, next) {
     const { id: ownerId, role } = req.user
 
     if (role !== orderHelper.USER_ROLES.OWNER) {
-      return res.status(403).json({
+      return res.status(200).json({
         status: 'failed',
         message: `未經授權：您的角色 (${role}) 沒有執行此 API 的權限`
       })

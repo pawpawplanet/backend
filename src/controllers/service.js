@@ -195,7 +195,7 @@ async function getServiceReviews(req, res, next) {
     const { service_id, limit = 10, page = 1 } = req.query
 
     if (!service_id) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'error',
         message: '缺少必要參數：service_id',
       })
@@ -214,7 +214,7 @@ async function getServiceReviews(req, res, next) {
     })
 
     if (!service) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'error',
         message: '找不到指定的服務',
       })

@@ -92,7 +92,7 @@ async function postMutiUploadImage(req, res, next) {
 async function postUploadImage(req, res, next) {
   const file = req.file
   if (!file) {
-    return res.status(400).json({
+    return res.status(200).json({
       status: 'failed',
       message: '沒有收到檔案'
     })

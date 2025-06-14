@@ -8,7 +8,7 @@ async function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1]
 
   if (!token) {
-    return res.status(401).json({ status: 'failed', message: '未提供 token' })
+    return res.status(200).json({ status: 'failed', message: '未提供 token' })
   }
 
   try {
@@ -18,7 +18,7 @@ async function authenticateToken(req, res, next) {
   } catch (error) {
     // 使用 console.warn 替代 logger.warn
     console.warn('Token 驗證失敗', error)
-    return res.status(403).json({ status: 'failed', message: 'Token 驗證失敗' })
+    return res.status(200).json({ status: 'failed', message: 'Token 驗證失敗' })
   }
 }
 

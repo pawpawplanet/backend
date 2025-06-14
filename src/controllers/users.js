@@ -29,14 +29,14 @@ async function postSignup(req, res, next) {
       isUndefined(role) || isNotValidSting(role)
     ) {
       logger.warn('欄位未填寫正確')
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
     }
     if (!passwordPattern.test(password)) {
       logger.warn('密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字')
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字'
       })
@@ -44,7 +44,7 @@ async function postSignup(req, res, next) {
 
     if (password !== confirmPassword) {
       logger.warn('密碼與確認密碼不一致')
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '密碼與確認密碼不一致'
       })
@@ -53,7 +53,7 @@ async function postSignup(req, res, next) {
 
     if (!['freelancer', 'owner'].includes(role)) {
       logger.warn('身分角色不正確，應為 OWNER 或 WORKER')
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '身分角色不正確'
       })
@@ -64,7 +64,7 @@ async function postSignup(req, res, next) {
 
     if (existingUser) {
       logger.warn('Email 已被使用')
-      return res.status(409).json({
+      return res.status(200).json({
         status: 'failed',
         message: 'Email 已被使用'
       })
@@ -103,7 +103,7 @@ async function postSignup(req, res, next) {
     // 不自動建立寵物資訊
 
 
-    return res.status(201).json({
+    return res.status(200).json({
       status: 'success',
       data: {
         user: {
@@ -125,7 +125,7 @@ async function postLogin(req, res, next) {
     const { email, password } = req.body
     if (isUndefined(email) || isNotValidSting(email) || isUndefined(password) || isNotValidSting(password)) {
       logger.warn('欄位未填寫正確')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -133,7 +133,7 @@ async function postLogin(req, res, next) {
     }
     if (!passwordPattern.test(password)) {
       logger.warn('密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字'
       })
@@ -146,7 +146,7 @@ async function postLogin(req, res, next) {
     })
 
     if (!existingUser) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '使用者不存在或密碼輸入錯誤'
       })
@@ -155,7 +155,7 @@ async function postLogin(req, res, next) {
     logger.info(`使用者資料: ${JSON.stringify(existingUser)}`)
     const isMatch = await bcrypt.compare(password, existingUser.password)
     if (!isMatch) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '使用者不存在或密碼輸入錯誤'
       })
@@ -168,7 +168,7 @@ async function postLogin(req, res, next) {
       expiresIn: `${config.get('secret.jwtExpiresDay')}`
     })
 
-    res.status(201).json({
+    res.status(200).json({
       status: 'success',
       data: {
         token,
@@ -210,7 +210,7 @@ async function postOwnerProfile(req, res, next) {
 
     // 檢查請求中是否有資料
     if (!req.body) {
-      return res.status(400).json({
+      return res.status(200).json({
         status: 'failed',
         message: '請提供資料'
       })
@@ -226,7 +226,7 @@ async function postOwnerProfile(req, res, next) {
 
     // 確認用戶已經登入
     if (!req.user) {
-      return res.status(401).json({
+      return res.status(200).json({
         status: 'failed',
         message: '認證失敗，請確認登入狀態'
       })
@@ -263,7 +263,7 @@ async function postOwnerProfile(req, res, next) {
 
     const savedProfile = await profileRepository.save(newProfile)
 
-    res.status(201).json({
+    res.status(200).json({
       status: 'success',
       data: savedProfile
     })
@@ -286,7 +286,7 @@ async function patchOwnerProfile(req, res, next) {
     const result = await userRepository.findOne({ where: { id } })
 
     if (!result) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '使用者不存在'
       })
@@ -294,7 +294,7 @@ async function patchOwnerProfile(req, res, next) {
 
     if (isUndefined(name) || isNotValidSting(name)) {
       logger.warn('欄位未填寫正確')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -353,7 +353,7 @@ async function putPassword(req, res, next) {
       isUndefined(newPassword) || isNotValidSting(newPassword) ||
       isUndefined(confirmNewPassword) || isNotValidSting(confirmNewPassword)) {
       logger.warn('欄位未填寫正確')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '欄位未填寫正確'
       })
@@ -361,7 +361,7 @@ async function putPassword(req, res, next) {
     }
     if (!passwordPattern.test(password) || !passwordPattern.test(newPassword) || !passwordPattern.test(confirmNewPassword)) {
       logger.warn('密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '密碼不符合規則，需要包含英文數字大小寫，最短8個字，最長16個字'
       })
@@ -369,7 +369,7 @@ async function putPassword(req, res, next) {
     }
     if (newPassword === password) {
       logger.warn('新密碼不能與舊密碼相同')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '新密碼不能與舊密碼相同'
       })
@@ -377,7 +377,7 @@ async function putPassword(req, res, next) {
     }
     if (newPassword !== confirmNewPassword) {
       logger.warn('新密碼與驗證新密碼不一致')
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '新密碼與驗證新密碼不一致'
       })
@@ -390,7 +390,7 @@ async function putPassword(req, res, next) {
     })
     const isMatch = await bcrypt.compare(password, existingUser.password)
     if (!isMatch) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '密碼輸入錯誤'
       })
@@ -404,7 +404,7 @@ async function putPassword(req, res, next) {
       password: hashPassword
     })
     if (updatedResult.affected === 0) {
-      res.status(400).json({
+      res.status(200).json({
         status: 'failed',
         message: '更新密碼失敗'
       })
