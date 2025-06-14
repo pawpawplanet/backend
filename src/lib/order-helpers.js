@@ -533,6 +533,7 @@ async function getOrdersWithQuery(query) {
     const countQueryBuilder = queryBuilder.clone()
     const total = await countQueryBuilder.getCount()
 
+    // queryBuilder.orderBy('order.service_date', 'ASC')
     queryBuilder.take(query.limit) // 設定每頁筆數
     queryBuilder.skip((query.page - 1) * query.limit) // 設定要跳過的筆數
 
@@ -612,6 +613,7 @@ async function freelancerExpandOrders(orders) {
         .leftJoinAndSelect('order.owner', 'owner')
         .leftJoinAndSelect('order.service', 'service')
         .where('order.id IN (:...ids)', { ids: orderIds })
+        .orderBy('order.service_date', 'ASC')
         .getMany()
     ])
 
@@ -659,6 +661,7 @@ async function ownerExpandOrders(orders) {
         .leftJoinAndSelect('order.freelancer', 'freelancer')
         .leftJoinAndSelect('order.service', 'service')
         .where('order.id IN (:...ids)', { ids: orderIds })
+        .orderBy('order.service_date', 'ASC')
         .getMany()
     ])
 
