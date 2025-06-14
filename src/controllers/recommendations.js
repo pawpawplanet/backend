@@ -46,7 +46,7 @@ async function getRecommendations(req, res, next) {
             }
         })
 
-        // services = services.filter((item) => item.rating >= 4.8)
+        services = services.filter((item) => item.rating >= 4.8)
 
         let result = [];
         if (services.length > 10) {
