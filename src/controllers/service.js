@@ -283,7 +283,7 @@ async function getServiceDetail(req, res, next) {
 
     console.log('service', service)
     if (!service) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '找不到該服務'
       })

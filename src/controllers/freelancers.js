@@ -25,9 +25,12 @@ function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
     const dateStr = date.format('YYYY-MM-DD')
     const weekday = date.day()
 
-    let status = is_weekly_mode
-      ? working_days.includes(weekday) ? '可接案' : '休假'
-      : '休假'
+    let status = '休假'
+    if (is_weekly_mode || i === 0) {//開關打開或今天
+      if (working_days.includes(weekday)) {
+        status = '可接案'
+      }
+    }
 
     //如果有該天的單，依照狀態覆蓋
     if (orderMap.has(dateStr)) {
@@ -46,10 +49,15 @@ function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
     })
   }
 
+  // 篩出可接案的日期
+  const availableDates = schedule
+    .filter(item => item.status !== '休假')
+    .map(item => item.date)
+
   return {
     today: today.format('YYYY-MM-DD'),
-    start_date: today.add(1, 'day').format('YYYY-MM-DD'),
-    end_date: today.add(7, 'day').format('YYYY-MM-DD'),
+    start_date: availableDates[0] || null,
+    end_date:  availableDates[availableDates.length - 1] || null,
     schedule
   }
 }
@@ -60,7 +68,7 @@ async function getFreelancerProfile(req, res, next) {
     const { id } = req.user
 
     if (!req.user) {
-      return res.status(401).json({
+      return res.status(200).json({
         status: 'failed',
         message: '認證失敗，請確認登入狀態'
       })
@@ -75,7 +83,6 @@ async function getFreelancerProfile(req, res, next) {
       relations: ['user']
     })
 
-    console.log('profile',profile)
     if (!profile) {
       return res.status(200).json({
         status: 'success',
@@ -121,7 +128,7 @@ async function getFreelancerProfile(req, res, next) {
         ...freelancer,
         calendar,
         services: services.map(s => ({
-          servic_type_id: s.service_type_id,
+          service_type_id: s.service_type_id,
           title: s.title,
           description: s.description,
           price: s.price,
@@ -152,7 +159,7 @@ async function postFreelancerProfile(req, res, next) {
     // const existingFreelancer = await freelancerRepo.findOne({ where: { user_id: id } }) // fix eslint warnings
 
     if (!req.user) {
-      return res.status(401).json({
+      return res.status(200).json({
         status: 'failed',
         message: '認證失敗，請確認登入狀態'
       })
@@ -178,7 +185,7 @@ async function postFreelancerProfile(req, res, next) {
 
     const savedFreelancer = await freelancerRepo.save(newFreelancer)
 
-    return res.status(201).json({
+    return res.status(200).json({
       status: 'success',
       data: savedFreelancer
     })
@@ -204,7 +211,7 @@ async function updateFreelancerProfile(req, res, next) {
       latitude = match.location.lat
       longitude = match.location.lng
     } else {
-      return res.status(404).json({
+      return res.status(200).json({
         status: 'failed',
         message: '找不到對應的經緯度資料'
       })
@@ -217,7 +224,7 @@ async function updateFreelancerProfile(req, res, next) {
     const freelancer = await freelancerRepo.findOne({ where: { user_id: id } })
 
     if (!user || !freelancer) {
-      return res.status(404).json({ status: 'failed', message: '保姆資料不存在' })
+      return res.status(200).json({ status: 'failed', message: '保姆資料不存在' })
     }
 
     // 更新 user 資料
@@ -282,7 +289,7 @@ async function createOrUpdateService(req, res, next) {
 
     const validTypes = [0, 1, 2, 3]
     if (!validTypes.includes(service_type_id)) {
-      return res.status(400).json({ 
+      return res.status(200).json({ 
         status: 'failed', 
         message: 'service_type_id 數據錯誤' 
       })
@@ -291,7 +298,7 @@ async function createOrUpdateService(req, res, next) {
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const freelancer = await freelancerRepo.findOneBy({ user_id: id })
     if (!freelancer) {
-      return res.status(400).json({ status: 'failed', message: '尚未建立保母資料' })
+      return res.status(200).json({ status: 'failed', message: '尚未建立保母資料' })
     }
 
     const repo = dataSource.getRepository('Service')
