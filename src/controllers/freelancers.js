@@ -422,16 +422,17 @@ async function getSchedule(req, res, next) {
 
     const DAYS_AHEAD = 7
     const finalWorkingDate = freelancer.final_working_date
-    const startDayJSDate = dayjs().add(1, 'day')
-    const endDayJSDate = dayjs().add(DAYS_AHEAD, 'day')
+    const today = dayjs().tz('Asia/Taipei') // taipeiTime
+    const startDayJSDate = today.add(1, 'day')
+    const endDayJSDate = today.add(DAYS_AHEAD, 'day')
 
     const availableDates = []
-    const finalWorkingDayJSDate = finalWorkingDate ? dayjs(finalWorkingDate): endDayJSDate
-
+    const finalWorkingDayJSDate = finalWorkingDate ? dayjs(finalWorkingDate).tz('Asia/Taipei') : endDayJSDate
     for (let i = 1; i <= DAYS_AHEAD; i++) {
-      const dayJSDate = dayjs().add(i, 'day')      
+      const dayJSDate = today.add(i, 'day')      
       if (dayJSDate.isBefore(finalWorkingDayJSDate.add(1, 'day')) && workingDays.includes(dayJSDate.day())) {
-        availableDates.push(dayJSDate.toDate())
+        // availableDates.push(dayJSDate.toDate())
+        availableDates.push(dayJSDate.format('YYYY-MM-DD'))
       }
     }
 
@@ -455,9 +456,8 @@ async function getSchedule(req, res, next) {
       .getMany()
 
     const serviceStrDates = orders.map(order => order.service_date)
-      .map(date => dayjs(date).format('YYYY-MM-DD'))
-    const resultStrDates = availableDates.map(date => dayjs(date).format('YYYY-MM-DD'))
-      .filter(strDate => !serviceStrDates.includes(strDate))
+      .map(date => dayjs(date).tz('Asia/Taipei').format('YYYY-MM-DD'))
+    const resultStrDates = availableDates.filter(strDate => !serviceStrDates.includes(strDate));  
 
     return res.status(200).json({
       status: 'success',
