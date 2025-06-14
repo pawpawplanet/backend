@@ -41,13 +41,14 @@ async function getReservedDates(req, res, next) {
     }
 
     const DAYS_AHEAD = 7
-    const startDayJSDate = dayjs().add(1, 'day')
-    const endDayJSDate = dayjs().add(DAYS_AHEAD, 'day')
+    const today = dayjs().tz('Asia/Taipei')
+    const startDayJSDate = today.add(1, 'day')
+    const endDayJSDate = today.add(DAYS_AHEAD, 'day')
 
     const availableDates = []
     for (let i = 1; i <= DAYS_AHEAD; i++) {
-      const dayJSDate = dayjs().add(i, 'day')
-      availableDates.push(dayJSDate.toDate())
+      const dayJSDate = today.add(i, 'day')
+      availableDates.push(dayJSDate.format('YYYY-MM-DD'))
     }
 
     const orderRepo = dataSource.getRepository('Order')
@@ -59,7 +60,7 @@ async function getReservedDates(req, res, next) {
       .getMany()
 
     const reservedStrDates = orders.map(order => order.service_date)
-      .map(date => dayjs(date).format('YYYY-MM-DD'))
+      .map(date => dayjs(date).tz('Asia/Taipei').format('YYYY-MM-DD'))
 
 
     return res.status(200).json({
