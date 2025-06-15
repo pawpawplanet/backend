@@ -10,7 +10,8 @@ async function PostOrderReview(req, res, next) {
 
   try {
     // const { id } = req.params
-    const { orderId, rating, comment, reviewerId, revieweeId } = req.body
+    const reviewerId = req.user.id
+    const { orderId, rating, comment, revieweeId } = req.body
 
     if (!orderId || !rating || !reviewerId || !revieweeId || !comment) {
       return res.status(200).json({
