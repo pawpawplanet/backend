@@ -9,7 +9,7 @@ const validation = require('../utils/validation')
 const districts = require('../data/taiwan-districts.json')
 
 
-function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
+function generateCalendar({ working_days, is_weekly_mode = false, orders = [] }) {
   const today = dayjs()
   const schedule = []
 
@@ -26,10 +26,8 @@ function generateCalendar({ working_days, is_weekly_mode, orders = [] }) {
     const weekday = date.day()
 
     let status = '休假'
-    if (is_weekly_mode || i === 0) {//開關打開或今天
-      if (working_days.includes(weekday)) {
-        status = '可接案'
-      }
+    if (working_days.includes(weekday)) {
+      status = '可接案'
     }
 
     //如果有該天的單，依照狀態覆蓋
@@ -100,7 +98,7 @@ async function getFreelancerProfile(req, res, next) {
     })
     const calendar = generateCalendar({
       working_days: profile.working_days,
-      is_weekly_mode: profile.is_weekly_mode,
+      // is_weekly_mode: profile.is_weekly_mode,
       orders
     })
 
