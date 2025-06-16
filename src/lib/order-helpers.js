@@ -309,7 +309,7 @@ async function payTheOrder(theOrder, paymentData) {
     // 調整訂單狀態  
     order.status = ORDER_STATUS.PAID
     order.payment.success = true
-    order.payment.method = paymentData.PaymentType || ''
+    order.payment.payment_method = preparePaymentMethod(paymentData.PaymentType)
 
     // 利用 paymentData 調整 order.payment
     if (gonnaCancelledOrders && gonnaCancelledOrders.length > 0) {
@@ -555,7 +555,7 @@ async function getOrdersWithQuery(query) {
   }
 }
 
-function expandOrder(order, user, pet, service, review) {
+function expandOrder(order, user, pet, service, review, payment) {
   return {
     user: {
       name: user.name,
@@ -593,6 +593,7 @@ function expandOrder(order, user, pet, service, review) {
       updated_at: order.updated_at,
     },
     review: review,
+    payment: payment
   }
 }
 
@@ -601,13 +602,15 @@ async function freelancerExpandOrders(orders) {
     const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
     const reviewRepo = dataSource.getRepository('Review')
+    const paymentRepo = dataSource.getRepository('Payment')
 
     const petIds = orders.map(order => order.pet_id)
     const orderIds = orders.map(order => order.id)
 
-    const [pets, reviews, expandedOrders] = await Promise.all([
+    const [pets, reviews, payments, expandedOrders] = await Promise.all([
       petRepo.findBy({ id: In(petIds) }),
       reviewRepo.findBy({ order_id: In(orderIds) }),
+      paymentRepo.findBy({ order_id: In(orderIds)}), 
       orderRepo
         .createQueryBuilder('order')
         .leftJoinAndSelect('order.owner', 'owner')
@@ -620,6 +623,8 @@ async function freelancerExpandOrders(orders) {
     const petMap = new Map(pets.map(pet => [pet.id, pet]))
     const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))
       .map(review => [review.order_id, review]))
+    const paymentMap = new Map(payments.filter(p => !validation.isNotValidObject(p))
+      .map(payment => [payment.order_id, payment]))  
 
     const data = expandedOrders.map(order => {
       const pet = petMap.get(order.pet_id)
@@ -628,7 +633,8 @@ async function freelancerExpandOrders(orders) {
       }
 
       const review = reviewMap.get(order.id) ?? {}
-      const expandedOrder = expandOrder(order, order.owner, pet, order.service, review)
+      const payment = paymentMap.get(order.id) ?? {}
+      const expandedOrder = expandOrder(order, order.owner, pet, order.service, review, payment)
       const { user, ...rest } = expandedOrder
       
       return { owner: user, ...rest }
@@ -645,6 +651,7 @@ async function ownerExpandOrders(orders) {
     const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
     const reviewRepo = dataSource.getRepository('Review')
+    const paymentRepo = dataSource.getRepository('Payment')
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const userRepo = dataSource.getRepository('User')
 
@@ -652,9 +659,10 @@ async function ownerExpandOrders(orders) {
     const orderIds = orders.map(order => order.id)
     const freelancerIds = orders.map(order => order.freelancer_id)
 
-    const [pets, reviews, freelancers, expandedOrders] = await Promise.all([
+    const [pets, reviews, payments, freelancers, expandedOrders] = await Promise.all([
       petRepo.findBy({ id: In(petIds) }),
       reviewRepo.findBy({ order_id: In(orderIds) }),
+      paymentRepo.findBy({ order_id: In(orderIds) }),
       freelancerRepo.findBy({ id: In(freelancerIds) }),
       orderRepo
         .createQueryBuilder('order')
@@ -668,6 +676,8 @@ async function ownerExpandOrders(orders) {
     const petMap = new Map(pets.map(pet => [pet.id, pet]))
     const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))
       .map(review => [review.order_id, review]))
+    const paymentMap = new Map(payments.filter(p => !validation.isNotValidObject(p))
+      .map(payment => [payment.order_id, payment]))  
 
     const userIds = freelancers.map( freelancer => freelancer.user_id)
     const users = await userRepo.findBy({ id: In(userIds)})
@@ -687,8 +697,9 @@ async function ownerExpandOrders(orders) {
       }
 
       const review = reviewMap.get(order.id) ?? {}
+      const payment = paymentMap.get(order.id) ?? {}
       
-      const expandedOrder = expandOrder(order, freelancer, pet, order.service, review)
+      const expandedOrder = expandOrder(order, freelancer, pet, order.service, review, payment)
       const { user, ...rest } = expandedOrder
       return { freelancer: user, ...rest }
     })
@@ -697,6 +708,24 @@ async function ownerExpandOrders(orders) {
   } catch (error) {
     throw validation.generateError('error', error.message, error)
   }
+}
+
+function preparePaymentMethod(paymentType) {  
+  if (!(typeof paymentType === 'string' && paymentType.trim().length > 0)) {
+    return ORDER_PAYMENT_METHOD['others']
+  }
+
+  for (const key in ORDER_PAYMENT_METHOD) {
+    if (Object.prototype.hasOwnProperty.call(ORDER_PAYMENT_METHOD, key)) {
+      const uppercase = paymentType.toUpperCase();
+
+      if (uppercase.includes(key.toUpperCase())) {
+        return ORDER_PAYMENT_METHOD[key];
+      }
+    }
+  }
+
+  return ORDER_PAYMENT_METHOD['OTHER']
 }
 
 // === constants ===
@@ -766,6 +795,12 @@ const ORDER_CAT_TAG = {
       [USER_ROLES.FREELANCER]: '結案'
     }
   }
+}
+
+const ORDER_PAYMENT_METHOD = {
+  'CreditCard': 0,
+  'ATM': 1,
+  'others': 2
 }
 
 // === exports ===

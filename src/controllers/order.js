@@ -3,6 +3,7 @@ const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
 const paymentHelper = require('../lib/payment-helpers')
 const { Not } = require('typeorm')
+const dayjs = require('dayjs')
 
 
 async function PostOrderReview(req, res, next) {
@@ -458,7 +459,7 @@ async function postOrderPayment(req, res, next) {
     const payment = paymentRepo.create({
       order_id: orderId,
       amount: order.price,
-      paid_at: new Date()
+      paid_at: dayjs().tz('Asia/Taipei').toDate()
     })
 
     await paymentRepo.save(payment)
@@ -486,8 +487,6 @@ async function postECPayResult(req, res, next) {
     const paymentData = req.body
     const orderId = req.params.id
 
-    // console.log('----------------------------- postECPayResult data:', paymentData)
-    // console.log('----------------------------- postECPayResult orderId:', orderId)
     if (!orderId || !paymentData) {
       return res.status(200).json({
         status: 'failed',
@@ -524,8 +523,6 @@ async function postECPayResult(req, res, next) {
     }
 
     // 再依據 post body 準備 paymentData
-    // const paymentData = data
-    // const result = orderHelper.payTheOrder(orderId, paymentData)
     const result = await orderHelper.payTheOrder(order, paymentData)
     if (!result) {
       res.status(200).json({
@@ -534,7 +531,6 @@ async function postECPayResult(req, res, next) {
       })
     }
 
-    console.log('-------------------------- result: ', result)
     res.send('1|OK')
     // return res.status(result.statusCode).json({
     //   status: result.status,
@@ -564,7 +560,6 @@ async function getOrderPayment(req, res, next) {
       relations: ['payment']
     })
 
-    console.log('------------------------- order:', order)
     if (!order || order.owner_id !== id) {
       res.status(200).json({
         status: 'failed',
