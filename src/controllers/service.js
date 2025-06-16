@@ -59,6 +59,9 @@ async function getService(req, res, next) {
     }
 
     if (dateFilter?.exact) {
+      const weekday = DateTime.fromISO(dateFilter.exact).weekday % 7
+
+
       query.andWhere(qb => {
         const subQuery = qb.subQuery()
           .select('1')
@@ -68,6 +71,21 @@ async function getService(req, res, next) {
           .getQuery()
         return `NOT EXISTS ${subQuery}`
       })
+
+      query.andWhere(`
+        :weekday = ANY(freelancer.working_days)
+        AND (
+          freelancer.final_working_date IS NULL OR
+          :date <= freelancer.final_working_date
+        )
+      `, {
+        weekday,
+        date: dateFilter.exact,
+      })
+
+
+
+
     } else if (dateFilter?.start && dateFilter?.end) {
       query.andWhere(qb => {
         const subQuery = qb.subQuery()
@@ -81,6 +99,17 @@ async function getService(req, res, next) {
           .getQuery()
         return `NOT EXISTS ${subQuery}`
       })
+      query.andWhere(`
+        array_length(freelancer.working_days, 1) > 0
+        AND (
+          freelancer.final_working_date IS NULL OR
+          freelancer.final_working_date >= :start
+        )
+      `, {
+        start: dateFilter.start,
+      })
+
+
     }
 
     if (min_price) {

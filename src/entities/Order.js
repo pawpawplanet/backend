@@ -174,7 +174,7 @@ module.exports = new EntitySchema({
     payment: {
       type: 'one-to-one',
       target: 'Payment',
-      inverseSide: 'order', 
+      inverseSide: 'order',
       cascade: true,
       eager: false,
     }
