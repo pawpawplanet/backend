@@ -9,14 +9,14 @@ async function PostOrderReview(req, res, next) {
   console.log('成功進入 PostOrderReview')
 
   try {
-    // const { id } = req.params
+    const { id: orderId } = req.params
     const reviewerId = req.user.id
-    const { orderId, rating, comment, revieweeId } = req.body
+    const { rating, comment} = req.body
 
-    if (!orderId || !rating || !reviewerId || !revieweeId || !comment) {
+    if (!orderId || !rating || !comment) {
       return res.status(200).json({
         status: 'error',
-        message: '缺少必要欄位 (orderId, rating, reviewerId, revieweeId)',
+        message: '缺少必要欄位 (orderId, rating, comment)',
       })
     }
 
@@ -50,6 +50,14 @@ async function PostOrderReview(req, res, next) {
     //   user: { id: reviewerId },           // reviewer 是 user
     //   freelancer: { id: revieweeId },     // 被評論者
     // })
+
+    const revieweeId = order.freelancer_id
+    if (!revieweeId || !reviewerId) {
+      return res.status(200).json({
+        status: 'error',
+        message: '缺少必要欄位 (revieweeId, reviewerId)',
+      })
+    }
 
     const review = reviewRepo.create({
       order: { id: orderId },
