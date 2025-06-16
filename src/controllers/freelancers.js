@@ -425,18 +425,15 @@ async function getSchedule(req, res, next) {
       })
     }
 
-    const DAYS_AHEAD = 7
-    const finalWorkingDate = freelancer.final_working_date
+    const DAYS_AHEAD = 6
     const today = dayjs().tz('Asia/Taipei') // taipeiTime
-    const startDayJSDate = today.add(1, 'day')
+    const startDayJSDate = today
     const endDayJSDate = today.add(DAYS_AHEAD, 'day')
 
     const availableDates = []
-    const finalWorkingDayJSDate = finalWorkingDate ? dayjs(finalWorkingDate).tz('Asia/Taipei') : endDayJSDate
-    for (let i = 1; i <= DAYS_AHEAD; i++) {
+    for (let i = 0; i <= DAYS_AHEAD; i++) {
       const dayJSDate = today.add(i, 'day')
-      if (dayJSDate.isBefore(finalWorkingDayJSDate.add(1, 'day')) && workingDays.includes(dayJSDate.day())) {
-        // availableDates.push(dayJSDate.toDate())
+      if (dayJSDate.isBefore(endDayJSDate.add(1, 'day')) && workingDays.includes(dayJSDate.day())) {
         availableDates.push(dayJSDate.format('YYYY-MM-DD'))
       }
     }
