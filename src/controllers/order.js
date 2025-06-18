@@ -275,9 +275,13 @@ async function getOrdersAcceptedOnSameDate(req, res) {
       })
     }
 
+    const userRepo = dataSource.getRepository('User')
     const orderRepo = dataSource.getRepository('Order')
-    const order= await orderRepo.findOne({ where: { id: orderId } })
-    if (validation.isNotValidObject(order) || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
+    const [user, order] = await Promise.all([
+      userRepo.findOne({ where: { id } }),
+      orderRepo.findOne({ where: { id: orderId } })
+    ])
+    if (!user || !order || order.status !== orderHelper.ORDER_STATUS.ACCEPTED) {
       return res.status(200).json({
         status: 'failed',
         message: `無法存取訂單：確認訂單是否存在以及訂單狀態是否為 ${orderHelper.ORDER_STATUS.ACCEPTED}`
@@ -302,7 +306,7 @@ async function getOrdersAcceptedOnSameDate(req, res) {
       })
     }
 
-    const result = await orderHelper.ownerExpandOrders(otherOrders)
+    const result = await orderHelper.ownerExpandOrders(user, otherOrders)
     if (validation.isNotValidObject(result)) {
       return res.status(200).json({
         status: 'error',
@@ -347,14 +351,16 @@ async function getOrdersRequestedOnSameDate(req, res) {
       })
     }
 
+    const userRepo = dataSource.getRepository('User')
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const orderRepo = dataSource.getRepository('Order')
-    const [freelancer, order] = await Promise.all([
+    const [user, freelancer, order] = await Promise.all([
+      userRepo.findOne({ where: { id} }),
       freelancerRepo.findOne({ where: { user_id: id} }),
       orderRepo.findOne({ where: { id: orderId } })
     ])
 
-    if (validation.isNotValidObject(freelancer) || validation.isNotValidObject(order)
+    if (!user || !freelancer || !order
       || order.status !== orderHelper.ORDER_STATUS.PENDING ) {
       return res.status(200).json({
         status: 'failed',
@@ -380,7 +386,8 @@ async function getOrdersRequestedOnSameDate(req, res) {
       })
     }
 
-    const result = await orderHelper.freelancerExpandOrders(otherOrders)
+    const freelancerData = { ...freelancer, city: user.city, area: user.area }
+    const result = await orderHelper.freelancerExpandOrders(freelancerData, otherOrders)
     if (validation.isNotValidObject(result)) {
       return res.status(200).json({
         status: 'error',
@@ -414,14 +421,14 @@ async function postOrderPayment(req, res, next) {
         message: '欄位未填寫正確'
       })
     }
-
+    
     // 取得 order
     const orderRepo = dataSource.getRepository('Order')
     const order = await orderRepo.findOne({
       where: { id: orderId },
       relations: ['service', 'payment'],
     })
-
+    
     if (!order || order.owner_id !== id) {
       res.status(200).json({
         status: 'failed',
@@ -430,7 +437,7 @@ async function postOrderPayment(req, res, next) {
 
       return;
     }
-
+    
     if (order.payment) {
       res.status(200).json({
         status: 'failed',
@@ -445,18 +452,19 @@ async function postOrderPayment(req, res, next) {
     const payment = paymentRepo.create({
       order_id: orderId,
       amount: order.price,
-      paid_at: dayjs().tz('Asia/Taipei').toDate()
+      paid_at: new Date()
     })
-
+    
     await paymentRepo.save(payment)
     const result = paymentHelper.prepareECPayData(order, payment)
+    
     if (!result) {
       return res.status(200).json({
         status: 'error',
         message: '伺服器錯誤：prepareECPayData has no result...'
       })
     }
-
+    
     return res.status(result.statusCode).json({
       status: result.status,
       message: result.message,
