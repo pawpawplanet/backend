@@ -23,7 +23,6 @@ async function PostOrderReview(req, res, next) {
 
     const orderRepo = dataSource.getRepository('Order')
     const reviewRepo = dataSource.getRepository('Review')
-    const freelancerRepo = dataSource.getRepository('Freelancer')
 
     const order = await orderRepo.findOne({
       where: { id: orderId },
@@ -69,19 +68,6 @@ async function PostOrderReview(req, res, next) {
     })
 
     await reviewRepo.save(review)
-
-    const { avg, count } = await reviewRepo
-      .createQueryBuilder('review')
-      .select('AVG(review.rating)', 'avg')
-      .addSelect('COUNT(*)', 'count')
-      .where('review.reviewee_id = :id', { id: revieweeId })
-      .getRawOne()
-
-    //更新保姆評分
-    await freelancerRepo.update(revieweeId, {
-      avg_rating: parseFloat(avg),
-      review_count: parseInt(count, 10)
-    })
 
     return res.status(200).json({
       status: 'success',
