@@ -301,6 +301,7 @@ async function getServiceDetail(req, res, next) {
     const serviceId = req.params.id
 
     const serviceRepo = dataSource.getRepository('Service')
+    const reviewRepo = dataSource.getRepository('Review')
 
     const service = await serviceRepo
       .createQueryBuilder('service')
@@ -321,6 +322,15 @@ async function getServiceDetail(req, res, next) {
     const freelancer = service.freelancer
     const user = freelancer.user
 
+    const { count, avg } = await reviewRepo
+      .createQueryBuilder('review')
+      .innerJoin('review.order', 'order')
+      .innerJoin('order.service', 'service')
+      .where('service.id = :serviceId', { serviceId })
+      .select('COUNT(*)', 'count')
+      .addSelect('AVG(review.rating)', 'avg')
+      .getRawOne()
+
     res.status(200).json({
       status: 'success',
       message: '成功',
@@ -337,8 +347,8 @@ async function getServiceDetail(req, res, next) {
           is_weekly_mode: freelancer.is_weekly_mode
         },
         review_status: {
-          count: freelancer.review_count,
-          avg_rating: freelancer.avg_rating
+          count: Number(count),
+          avg_rating: avg ? parseFloat(avg).toFixed(1) : 0
         }
       }
     })
