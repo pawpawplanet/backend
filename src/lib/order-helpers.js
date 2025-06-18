@@ -1,6 +1,12 @@
 const { Not, In } = require('typeorm')
 const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
+const dayjs = require('dayjs')
+const utc = require('dayjs/plugin/utc');        
+const timezone = require('dayjs/plugin/timezone');
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // === api/patchOrderStatus related ===
 function checkPermission(role, action) {
@@ -343,8 +349,9 @@ async function payTheOrder(theOrder, paymentData) {
 // === api/{role}/orders?tag={tag}&limit={limit}&page={page} related ===
 async function freelancerGetOrders(userId, tag, limit, page) {
   try {
+    const user = await dataSource.getRepository('User').findOne({ where: { id: userId } })
     const freelancer = await dataSource.getRepository('Freelancer').findOne({ where: { user_id: userId } })
-    if (validation.isNotValidObject(freelancer)) {
+    if (!freelancer || !user) {
       return { statusCode: 400, status: 'failed', message: '無法取得訂單：找不到保姆資料' }
     }
 
@@ -372,7 +379,8 @@ async function freelancerGetOrders(userId, tag, limit, page) {
     }
 
     const total = queryResult.data.total
-    const expandResult = await freelancerExpandOrders(queryResult.data.orders)
+    const expandResult = await freelancerExpandOrders({
+      ...freelancer, city: user.city, area: user.area}, queryResult.data.orders)
     if (validation.isNotValidObject(expandResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：freelancerExpandOrders returned no results' }
     } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
@@ -397,6 +405,11 @@ async function freelancerGetOrders(userId, tag, limit, page) {
 
 async function ownerGetOrders(userId, tag, limit, page) {
   try {
+    const user = await dataSource.getRepository('User').findOne({ where: { id: userId } })
+    if (!user) {
+      return { statusCode: 200, status: 'failed', message: '無法取得訂單：找不到飼主資料' }
+    }
+
     const query = {
       ...prepareOrderQueryForTagByRole(tag, USER_ROLES.OWNER),
       ownerId: userId,
@@ -422,7 +435,7 @@ async function ownerGetOrders(userId, tag, limit, page) {
     }
 
     const total = queryResult.data.total
-    const expandResult = await ownerExpandOrders(queryResult.data.orders)
+    const expandResult = await ownerExpandOrders(user, queryResult.data.orders)
     if (validation.isNotValidObject(expandResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：ownerExpandOrders returned no results' }
     } else if (validation.isNotSuccessStatusCode(expandResult.statusCode)) {
@@ -556,6 +569,13 @@ async function getOrdersWithQuery(query) {
 }
 
 function expandOrder(order, user, pet, service, review, payment) {
+  const { paid_at, ...rest } = payment
+  const payment_date = dayjs(paid_at).tz('Asia/Taipei').format('YYYY-MM-DD')
+  const paymentData = {
+    ...rest,
+    paid_at: payment_date
+  }
+
   return {
     user: {
       name: user.name,
@@ -579,7 +599,9 @@ function expandOrder(order, user, pet, service, review, payment) {
       service_type_id: service.service_type_id,
       price: service.price,
       price_unit: service.price_unit,
-      title: service.title
+      title: service.title,
+      city: service.city,
+      area: service.area
     },
     order: {
       id: order.id,
@@ -593,11 +615,11 @@ function expandOrder(order, user, pet, service, review, payment) {
       updated_at: order.updated_at,
     },
     review: review,
-    payment: payment
+    payment: paymentData
   }
 }
 
-async function freelancerExpandOrders(orders) {
+async function freelancerExpandOrders(freelancer, orders) {
   try {
     const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
@@ -634,7 +656,11 @@ async function freelancerExpandOrders(orders) {
 
       const review = reviewMap.get(order.id) ?? {}
       const payment = paymentMap.get(order.id) ?? {}
-      const expandedOrder = expandOrder(order, order.owner, pet, order.service, review, payment)
+
+      const location = prepareServiceLocation(freelancer, order.owner, order.service.service_type_id)
+      const serviceData = { ...order.service, city: location.city, area: location.area }
+
+      const expandedOrder = expandOrder(order, order.owner, pet, serviceData, review, payment)
       const { user, ...rest } = expandedOrder
       
       return { owner: user, ...rest }
@@ -646,7 +672,7 @@ async function freelancerExpandOrders(orders) {
   }
 }
 
-async function ownerExpandOrders(orders) {
+async function ownerExpandOrders(owner, orders) {
   try {
     const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
@@ -699,7 +725,9 @@ async function ownerExpandOrders(orders) {
       const review = reviewMap.get(order.id) ?? {}
       const payment = paymentMap.get(order.id) ?? {}
       
-      const expandedOrder = expandOrder(order, freelancer, pet, order.service, review, payment)
+      const location = prepareServiceLocation(freelancer, owner, order.service.service_type_id)
+      const serviceData = { ...order.service, city: location.city, area: location.area }
+      const expandedOrder = expandOrder(order, freelancer, pet, serviceData, review, payment)
       const { user, ...rest } = expandedOrder
       return { freelancer: user, ...rest }
     })
@@ -728,7 +756,28 @@ function preparePaymentMethod(paymentType) {
   return ORDER_PAYMENT_METHOD['OTHER']
 }
 
+function prepareServiceLocation(freelancer, owner, serviceType) {
+  const location = {};
+
+  if (serviceType === SERVICE_TYPE.BOARDING || serviceType === SERVICE_TYPE.GROOMING) {
+    location.city = freelancer.city
+    location.area = freelancer.area
+  } else {
+    location.city = owner.city
+    location.area = owner.area
+  }
+
+  return location
+}
+
 // === constants ===
+const SERVICE_TYPE = { 
+  BOARDING: 0,
+  WALKING: 1,
+  GROOMING: 2,
+  HOMECARE: 3
+}
+
 const USER_ROLES = {
   OWNER: 'owner',
   FREELANCER: 'freelancer',
