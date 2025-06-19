@@ -47,7 +47,7 @@ function prepareECPayData(order, payment) {
     TradeDesc: order.description || '測試交易描述',
     ItemName: order.service.title || '測試訂單',
     ReturnURL: `${BACKEND_HOST}/api/orders/${order.id}/ecpay-result`,
-    ClientBackURL: `${FRONTEND_HOST}/owner-order-management?tag=${ORDER_CAT_TAG.PAID.value}&limit=10&page=1`, // 消費者點選此按鈕後，會將頁面導回到此設定的網址
+    ClientBackURL: `${FRONTEND_HOST}/owner-order-list?tag=${ORDER_CAT_TAG.PAID.value}`, // 消費者點選此按鈕後，會將頁面導回到此設定的網址
     // OrderResultURL: `${FRONTEND_HOST}/ecpay-result`, // 有別於ReturnURL (server端的網址)，OrderResultURL為特店的client端(前端)網址。消費者付款完成後，綠界會將付款結果參數以POST方式回傳到到該網址。詳細說明請參考付款結果通知。; 若與[ClientBackURL]同時設定，將會以此參數為主
     CustomField1: payment.id
   }
