@@ -2,7 +2,7 @@ const { dataSource } = require('../db/data-source')
 const validation = require('../utils/validation')
 const orderHelper = require('../lib/order-helpers')
 const paymentHelper = require('../lib/payment-helpers')
-const { Not } = require('typeorm')
+const { Not, In } = require('typeorm')
 const dayjs = require('dayjs')
 
 
@@ -213,7 +213,8 @@ async function PostOrder(req, res, next) {
     const existingOrder = await orderRepository.findOne({
       where: {
         freelancer_id,
-        service_date
+        service_date,
+        status: In([orderHelper.ORDER_STATUS.ACCEPTED, orderHelper.ORDER_STATUS.PAID]), 
       }
     })
 
