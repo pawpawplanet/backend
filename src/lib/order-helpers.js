@@ -611,11 +611,14 @@ async function getOrdersWithQuery(query) {
 }
 
 function expandOrder(order, user, pet, service, review, payment) {
-  const { paid_at, ...rest } = payment
-  const payment_date = dayjs(paid_at).tz('Asia/Taipei').format('YYYY-MM-DD')
-  const paymentData = {
-    ...rest,
-    paid_at: payment_date
+  let paymentData = payment
+  if (payment && !(Object.keys(payment).length === 0)) {
+    const { paid_at, ...rest } = payment
+    const payment_date = dayjs(paid_at).tz('Asia/Taipei').format('YYYY-MM-DD')
+    paymentData  = {
+      ...rest,
+      paid_at: payment_date
+    }
   }
 
   return {
