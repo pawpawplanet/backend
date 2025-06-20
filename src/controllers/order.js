@@ -126,6 +126,8 @@ async function patchOrderStatus(req, res, next) {
       result = role === orderHelper.USER_ROLES.OWNER ?
         await orderHelper.ownerCloseOrder(id, orderId) : await orderHelper.freelancerCloseOrder(id, orderId)
       break
+    case 'complete':
+      result = await orderHelper.completeOrder(id, orderId)  
     default:
       console.log('should not reach the default case')
     }

@@ -278,6 +278,50 @@ async function freelancerCloseOrder(userId, orderId) {
   }
 }
 
+async function completeOrder(userId, orderId) {
+  try {
+    const owner = await dataSource.getRepository('User').findOne({ where: { id: userId } })
+    const orderRepo = dataSource.getRepository('Order')
+    const order = await orderRepo.findOne({ where: { id: orderId } })
+
+    if (!owner || !order) {
+      return { statusCode: 400, status: 'failed', message: '無法存取訂單' }
+    }
+    if (!order.owner_id || order.owner_id !== owner.id) {
+      return { statusCode: 400, status: 'failed', message: '無法存取訂單，不是您的訂單' }
+    }
+    if (order.status !== ORDER_STATUS.PAID) {
+      return { statusCode: 422, status: 'failed', message: '無法讓未付款訂單正常結案' }
+    }
+
+    // 調整訂單狀態  
+    order.status = ORDER_STATUS.COMPLETED
+    order.did_freelancer_close_the_order = true
+    order.did_owner_close_the_order = true
+    await orderRepo.save(order)
+
+    return {
+      statusCode: 200,
+      status: 'success',
+      message: '成功接受預約',
+      data: {
+        order_status: ORDER_STATUS.COMPLETED,
+        target_tag: {
+          value: ORDER_CAT_TAG.CLOSE.value,
+          caption: ORDER_CAT_TAG.CLOSE.captions[USER_ROLES.OWNER]
+        }
+      }
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      statusCode: 500,
+      message: `取消預約時發生錯誤: ${error.message}`,
+      errorDetails: error
+    }
+  }
+}
+
 // 更新 order & payment 並將當天其他訂單會 ”自動” 取消
 async function payTheOrder(theOrder, paymentData) { 
   const queryRunner = dataSource.createQueryRunner()
@@ -418,7 +462,6 @@ async function ownerGetOrders(userId, tag, limit, page) {
     }
 
     const queryResult = await getOrdersWithQuery(query)
-
     if (validation.isNotValidObject(queryResult)) {
       return { statusCode: 500, status: 'failed', message: '伺服器錯誤：getOrdersWithQuery returned no results' }
     } else if (validation.isNotSuccessStatusCode(queryResult.statusCode)) {
@@ -546,11 +589,10 @@ async function getOrdersWithQuery(query) {
     const countQueryBuilder = queryBuilder.clone()
     const total = await countQueryBuilder.getCount()
 
-    // queryBuilder.orderBy('order.service_date', 'ASC')
     queryBuilder.take(query.limit) // 設定每頁筆數
     queryBuilder.skip((query.page - 1) * query.limit) // 設定要跳過的筆數
 
-    const orders = await queryBuilder.getMany()
+    const orders = await queryBuilder.orderBy('order.service_date', 'DESC').getMany()
     
     return {
       status: 'success',
@@ -638,7 +680,7 @@ async function freelancerExpandOrders(freelancer, orders) {
         .leftJoinAndSelect('order.owner', 'owner')
         .leftJoinAndSelect('order.service', 'service')
         .where('order.id IN (:...ids)', { ids: orderIds })
-        .orderBy('order.service_date', 'ASC')
+        .orderBy('order.service_date', 'DESC')
         .getMany()
     ])
 
@@ -695,7 +737,7 @@ async function ownerExpandOrders(owner, orders) {
         .leftJoinAndSelect('order.freelancer', 'freelancer')
         .leftJoinAndSelect('order.service', 'service')
         .where('order.id IN (:...ids)', { ids: orderIds })
-        .orderBy('order.service_date', 'ASC')
+        .orderBy('order.service_date', 'DESC')
         .getMany()
     ])
 
@@ -788,12 +830,13 @@ const ORDER_ACTIONS = {
   REJECT: 'reject',
   CANCEL: 'cancel',
   CLOSE: 'close',
+  COMPLETE: 'complete'
   /*'request' */
   /*'pay'*/
 }
 
 const permissions = {
-  [USER_ROLES.OWNER]: [ORDER_ACTIONS.CANCEL, ORDER_ACTIONS.CLOSE],
+  [USER_ROLES.OWNER]: [ORDER_ACTIONS.CANCEL, ORDER_ACTIONS.CLOSE, ORDER_ACTIONS.COMPLETE],
   [USER_ROLES.FREELANCER]: [ORDER_ACTIONS.ACCEPT, ORDER_ACTIONS.REJECT, ORDER_ACTIONS.CLOSE],
 }
 
@@ -861,6 +904,7 @@ module.exports = {
   cancelOrder,
   ownerCloseOrder,
   freelancerCloseOrder,
+  completeOrder,
   payTheOrder,
 
   freelancerGetOrders,

@@ -3,6 +3,7 @@ const dayjs = require('dayjs')
 const utc = require('dayjs/plugin/utc');        // 引入 UTC 插件
 const timezone = require('dayjs/plugin/timezone');  // 引入 timezone 插件
 const orderHelper = require('../lib/order-helpers')
+const { Not, In } = require('typeorm')
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -42,6 +43,7 @@ async function closeDueOrders(req, res, next) {
       .find({
         where: {
           service_date: dueDate,
+          status: Not(In([orderHelper.ORDER_STATUS.REJECTED, orderHelper.ORDER_STATUS.CANCELLED, orderHelper.ORDER_STATUS.COMPLETED]))
         }
       })
 
