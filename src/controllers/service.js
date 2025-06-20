@@ -68,6 +68,7 @@ async function getService(req, res, next) {
           .from('Order', 'order')
           .where('order.service_id = service.id')
           .andWhere('DATE(order.service_date) = :date', { date: dateFilter.exact })
+          .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [0, 1, 2] })
           .getQuery()
         return `NOT EXISTS ${subQuery}`
       })
@@ -96,6 +97,7 @@ async function getService(req, res, next) {
             start: dateFilter.start,
             end: dateFilter.end
           })
+          .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [0, 1, 2] })
           .getQuery()
         return `NOT EXISTS ${subQuery}`
       })
