@@ -453,7 +453,7 @@ async function getSchedule(req, res, next) {
     const orders = await orderRepo
       .createQueryBuilder('order')
       .where('order.freelancer_id = :freelancerId ', { freelancerId })
-      .andWhere('order.status = :status', { status: orderHelper.ORDER_STATUS.ACCEPTED })
+      .andWhere('order.status IN (:...statuses)', { statuses: [ orderHelper.ORDER_STATUS.ACCEPTED, orderHelper.ORDER_STATUS.PAID ] })
       .andWhere('order.service_date IN (:...dates)', { dates: availableDates })
       .getMany()
 
