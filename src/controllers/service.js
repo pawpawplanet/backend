@@ -271,8 +271,8 @@ async function getServiceReviews(req, res, next) {
       comment: r.comment,
       created_at: r.created_at,
       service_date: r.order?.service_date,
-      owner_name: r.user?.name || null,
-      owner_avatar: r.user?.avatar || null,
+      owner_name: r.reviewer?.name || null,
+      owner_avatar: r.reviewer?.avatar || null,
     }))
 
     return res.status(200).json({
