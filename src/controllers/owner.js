@@ -40,13 +40,13 @@ async function getReservedDates(req, res, next) {
       })
     }
 
-    const DAYS_AHEAD = 7
+    const DAYS_AHEAD = 6
     const today = dayjs().tz('Asia/Taipei')
-    const startDayJSDate = today.add(1, 'day')
+    const startDayJSDate = today
     const endDayJSDate = today.add(DAYS_AHEAD, 'day')
 
     const availableDates = []
-    for (let i = 1; i <= DAYS_AHEAD; i++) {
+    for (let i = 0; i <= DAYS_AHEAD; i++) {
       const dayJSDate = today.add(i, 'day')
       availableDates.push(dayJSDate.format('YYYY-MM-DD'))
     }
