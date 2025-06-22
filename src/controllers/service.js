@@ -68,48 +68,57 @@ async function getService(req, res, next) {
           .from('Order', 'order')
           .where('order.service_id = service.id')
           .andWhere('DATE(order.service_date) = :date', { date: dateFilter.exact })
-          .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [0, 1, 2] })
+          .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [1, 2] })
           .getQuery()
         return `NOT EXISTS ${subQuery}`
       })
 
+
       query.andWhere(`
-        :weekday = ANY(freelancer.working_days)
+        (
+          freelancer.is_weekly_mode = false
+          OR (:weekday = ANY(freelancer.working_days))
+        )
         AND (
           freelancer.final_working_date IS NULL OR
           :date <= freelancer.final_working_date
         )
-      `, {
-        weekday,
-        date: dateFilter.exact,
-      })
+      `, { weekday, date: dateFilter.exact })
 
 
 
 
     } else if (dateFilter?.start && dateFilter?.end) {
+      const weekdaysInRange = getWeekdaysInRange(dateFilter.start, dateFilter.end);
+      const allowedWeekdays = [...new Set(weekdaysInRange.map(d => d.weekday))];
+      const allowedDates = weekdaysInRange.map(d => d.date);
+
       query.andWhere(qb => {
-        const subQuery = qb.subQuery()
-          .select('1')
-          .from('Order', 'order')
-          .where('order.service_id = service.id')
-          .andWhere('DATE(order.service_date) BETWEEN :start AND :end', {
-            start: dateFilter.start,
-            end: dateFilter.end
-          })
-          .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [0, 1, 2] })
-          .getQuery()
-        return `NOT EXISTS ${subQuery}`
-      })
+      const subQuery = qb.subQuery()
+        .select('1')
+        .from('Order', 'order')
+        .where('order.service_id = service.id')
+        .andWhere('DATE(order.service_date) IN (:...allowedDates)', { allowedDates })
+        .andWhere('order.status IN (:...activeStatuses)', { activeStatuses: [1, 2] })
+        .getQuery();
+      return `NOT EXISTS ${subQuery}`;
+    });
+
+
       query.andWhere(`
-        array_length(freelancer.working_days, 1) > 0
+        (
+          freelancer.is_weekly_mode = false
+          OR (
+            freelancer.is_weekly_mode = true
+             AND freelancer.working_days && ARRAY[:...allowedWeekdays]::smallint[]
+            )
+          )
+        )
         AND (
           freelancer.final_working_date IS NULL OR
           freelancer.final_working_date >= :start
         )
-      `, {
-        start: dateFilter.start,
-      })
+      `, { allowedWeekdays, start: dateFilter.start })
 
 
     }
@@ -216,6 +225,7 @@ async function getService(req, res, next) {
     })
   }
 }
+
 
 
 
