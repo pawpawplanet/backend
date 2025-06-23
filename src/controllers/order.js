@@ -217,6 +217,7 @@ async function PostOrder(req, res, next) {
         owner_id,
         service_id,
         service_date,
+        status: orderHelper.ORDER_STATUS.PENDING
       }
     })
     if (existingSameDateServiceOrder) {
