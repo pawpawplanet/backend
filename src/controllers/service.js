@@ -6,6 +6,23 @@ const { dataSource } = require('../db/data-source')
 // const logger = require('../utils/logger')('UsersController') // fix eslint warnings
 
 
+function getWeekdaysInRange(startStr, endStr) {
+  const start = DateTime.fromISO(startStr)
+  const end = DateTime.fromISO(endStr)
+  const days = []
+
+  let current = start
+  while (current <= end) {
+    days.push({
+      date: current.toISODate(),
+      weekday: current.weekday % 7, // 0: Sunday, 6: Saturday
+    })
+    current = current.plus({ days: 1 })
+  }
+
+  return days
+}
+
 async function getService(req, res, next) {
   console.log('成功進入 getService')
   try {
@@ -60,7 +77,7 @@ async function getService(req, res, next) {
 
     if (dateFilter?.exact) {
       const weekday = DateTime.fromISO(dateFilter.exact).weekday % 7
-
+      //console.log("weekday:", weekday)
 
       query.andWhere(qb => {
         const subQuery = qb.subQuery()
@@ -74,24 +91,35 @@ async function getService(req, res, next) {
       })
 
 
+
       query.andWhere(`
         (
-          freelancer.is_weekly_mode = false
+          freelancer.is_weekly_mode = true
           OR (:weekday = ANY(freelancer.working_days))
         )
         AND (
-          freelancer.final_working_date IS NULL OR
-          :date <= freelancer.final_working_date
+          freelancer.final_working_date IS NULL
+          OR :date <= freelancer.final_working_date
         )
-      `, { weekday, date: dateFilter.exact })
+      `, {
+        weekday,
+        date: dateFilter.exact,
+      })
+
+      //console.log(query.getParameters())
+
 
 
 
 
     } else if (dateFilter?.start && dateFilter?.end) {
       const weekdaysInRange = getWeekdaysInRange(dateFilter.start, dateFilter.end);
-      const allowedWeekdays = [...new Set(weekdaysInRange.map(d => d.weekday))];
+      //const allowedWeekdays = [...new Set(weekdaysInRange.map(d => d.weekday))];
+      const allowedWeekdays = [...new Set(weekdaysInRange.map(d => d.weekday.toString()))];
       const allowedDates = weekdaysInRange.map(d => d.date);
+      
+      console.log("allowedWeekdays:", allowedWeekdays)
+      console.log("allowedDates:", allowedDates)
 
       query.andWhere(qb => {
       const subQuery = qb.subQuery()
@@ -105,21 +133,20 @@ async function getService(req, res, next) {
     });
 
 
-      query.andWhere(`
-        (
-          freelancer.is_weekly_mode = false
-          OR (
-            freelancer.is_weekly_mode = true
-             AND freelancer.working_days && ARRAY[:...allowedWeekdays]::smallint[]
-            )
-          )
-        )
-        AND (
-          freelancer.final_working_date IS NULL OR
-          freelancer.final_working_date >= :start
-        )
-      `, { allowedWeekdays, start: dateFilter.start })
+    query.andWhere(`
+      freelancer.is_weekly_mode = true
+      OR freelancer.working_days && :allowedWeekdays
+      AND (
+        freelancer.final_working_date IS NULL OR
+        freelancer.final_working_date >= :start
+      )
+    `, {
+      allowedWeekdays,
+      start: dateFilter.start,
+    })
 
+    
+    console.log("query.getParameters():", query.getParameters())
 
     }
 
