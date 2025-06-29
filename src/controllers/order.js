@@ -456,26 +456,38 @@ async function postOrderPayment(req, res, next) {
       return;
     }
     
+    var hasUnpaidPayment = false
     if (order.payment) {
-      res.status(200).json({
-        status: 'failed',
-        message: '已有帳單資訊，無法再次付款'
-      })
+      if (order.payment.success) {
+        res.status(200).json({
+          status: 'failed',
+          message: '已有成功付款的帳單資訊，無法再次付款'
+        })
 
-      return;
+        return;
+      } else {
+        hasUnpaidPayment = true
+      }
     }
 
-    // 新增 payment
+    // 準備 payment
+    var payment;
     const paymentRepo = dataSource.getRepository('Payment')
-    const payment = paymentRepo.create({
-      order_id: orderId,
-      amount: order.price,
-      paid_at: new Date()
-    })
+    if (!hasUnpaidPayment) {
+      payment = paymentRepo.create({
+        order_id: orderId,
+        amount: order.price,
+        paid_at: new Date()
+      })
+
+      payment = await paymentRepo.save(payment)
+    } else {
+      payment = order.payment
+      payment.paid_at = new Date()
+      payment = await paymentRepo.save(payment)
+    }
     
-    await paymentRepo.save(payment)
     const result = paymentHelper.prepareECPayData(order, payment)
-    
     if (!result) {
       return res.status(200).json({
         status: 'error',
