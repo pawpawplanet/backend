@@ -505,44 +505,64 @@ function prepareOrderQueryForTagByRole(tag, role) {
   const query = { status: [] }
   if (role === USER_ROLES.FREELANCER) {
     switch (tag) {
-    case ORDER_CAT_TAG.PENDING.value:
-      query.status.push(ORDER_STATUS.PENDING)
+    case ORDER_CAT_TAG.PENDING.value: {
+        query.status.push(ORDER_STATUS.PENDING)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.ACCEPTED.value:
-      query.status.push(ORDER_STATUS.ACCEPTED)
+    case ORDER_CAT_TAG.ACCEPTED.value: {
+        query.status.push(ORDER_STATUS.ACCEPTED)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.PAID.value:
-      query.status.push(ORDER_STATUS.PAID)
+    case ORDER_CAT_TAG.PAID.value: {
+        query.status.push(ORDER_STATUS.PAID)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.LATEST_RESPONSE.value:
-      query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED])
-      query.didFreelancerCloseTheOrder = false
+    case ORDER_CAT_TAG.LATEST_RESPONSE.value: {
+        query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED])
+        query.didFreelancerCloseTheOrder = false
+        query.orderBy = { field: 'updated_at', order: 'DESC' }
+      }
       break
-    case ORDER_CAT_TAG.CLOSE.value:
-      query.didFreelancerCloseTheOrder = true
-      // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+    case ORDER_CAT_TAG.CLOSE.value: {
+        query.didFreelancerCloseTheOrder = true
+        query.orderBy = { field: 'service_date', order: 'DESC' }
+        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+      }
       break
     default:
       console.log('should not reach the default case')
     }
   } else if (role === USER_ROLES.OWNER) {
     switch (tag) {
-    case ORDER_CAT_TAG.PENDING.value:
-      query.status.push(ORDER_STATUS.PENDING)
+    case ORDER_CAT_TAG.PENDING.value: {
+        query.status.push(ORDER_STATUS.PENDING)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.ACCEPTED.value:
-      query.status.push(ORDER_STATUS.ACCEPTED)
+    case ORDER_CAT_TAG.ACCEPTED.value: {
+        query.status.push(ORDER_STATUS.ACCEPTED)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.PAID.value:
-      query.status.push(ORDER_STATUS.PAID)
+    case ORDER_CAT_TAG.PAID.value: {
+        query.status.push(ORDER_STATUS.PAID)
+        query.orderBy = { field: 'service_date', order: 'ASC' }
+      }
       break
-    case ORDER_CAT_TAG.LATEST_RESPONSE.value:
-      query.status.push(ORDER_STATUS.REJECTED)
-      query.didOwnerCloseTheOrder = false
+    case ORDER_CAT_TAG.LATEST_RESPONSE.value: {
+        query.status.push(ORDER_STATUS.REJECTED)
+        query.didOwnerCloseTheOrder = false
+        query.orderBy = { field: 'updated_at', order: 'DESC' }
+      }
       break
-    case ORDER_CAT_TAG.CLOSE.value:
-      query.didOwnerCloseTheOrder = true
-      // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+    case ORDER_CAT_TAG.CLOSE.value: {
+        query.didOwnerCloseTheOrder = true
+        query.orderBy = { field: 'service_date', order: 'DESC' }
+        // query.status = query.status.concat([ORDER_STATUS.CANCELLED, ORDER_STATUS.EXPIRED, ORDER_STATUS.COMPLETED])
+      }
       break
     default:
       console.log('should not reach the default case')
@@ -585,6 +605,11 @@ async function getOrdersWithQuery(query) {
       })
     }
 
+    // 依據 service_date 或 update_at 排序
+    if (query.orderBy.field && query.orderBy.order) {
+      queryBuilder.orderBy(query.orderBy.field, query.orderBy.order);
+    }
+
     // 複製 queryBuilder 以進行計數查詢，避免影響原始查詢
     const countQueryBuilder = queryBuilder.clone()
     const total = await countQueryBuilder.getCount()
@@ -592,7 +617,7 @@ async function getOrdersWithQuery(query) {
     queryBuilder.take(query.limit) // 設定每頁筆數
     queryBuilder.skip((query.page - 1) * query.limit) // 設定要跳過的筆數
 
-    const orders = await queryBuilder.orderBy('order.service_date', 'DESC').getMany()
+    const orders = await queryBuilder.getMany()
     
     return {
       status: 'success',
@@ -666,46 +691,56 @@ function expandOrder(order, user, pet, service, review, payment) {
 
 async function freelancerExpandOrders(freelancer, orders) {
   try {
-    const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
     const reviewRepo = dataSource.getRepository('Review')
     const paymentRepo = dataSource.getRepository('Payment')
+    const ownerRepo = dataSource.getRepository('User')
+    const serviceRepo = dataSource.getRepository('Service')
 
     const petIds = orders.map(order => order.pet_id)
     const orderIds = orders.map(order => order.id)
+    const ownerIds = orders.map(order => order.owner_id)
+    const serviceIds = orders.map(order => order.service_id)
 
-    const [pets, reviews, payments, expandedOrders] = await Promise.all([
+    const [pets, reviews, payments, owners, services] = await Promise.all([  
       petRepo.findBy({ id: In(petIds) }),
       reviewRepo.findBy({ order_id: In(orderIds) }),
-      paymentRepo.findBy({ order_id: In(orderIds)}), 
-      orderRepo
-        .createQueryBuilder('order')
-        .leftJoinAndSelect('order.owner', 'owner')
-        .leftJoinAndSelect('order.service', 'service')
-        .where('order.id IN (:...ids)', { ids: orderIds })
-        .orderBy('order.service_date', 'DESC')
-        .getMany()
+      paymentRepo.findBy({ order_id: In(orderIds)}),
+      ownerRepo.findBy({ id: In(ownerIds) }),
+      serviceRepo.findBy({ id: In(serviceIds) }) 
     ])
 
     const petMap = new Map(pets.map(pet => [pet.id, pet]))
     const reviewMap = new Map(reviews.filter(r => !validation.isNotValidObject(r))
       .map(review => [review.order_id, review]))
     const paymentMap = new Map(payments.filter(p => !validation.isNotValidObject(p))
-      .map(payment => [payment.order_id, payment]))  
+      .map(payment => [payment.order_id, payment]))
+    const ownerMap = new Map(
+      owners.map(owner => [owner.id, owner]))
+    const serviceMap = new Map(services.map(service => [service.id, service]))    
 
-    const data = expandedOrders.map(order => {
+    const data = orders.map(order => {  
       const pet = petMap.get(order.pet_id)
       if (validation.isNotValidObject(pet)) {
-        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${pet} 關聯資料有誤`' }
+      }
+
+      const owner = ownerMap.get(order.owner_id)
+      if (!owner) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${owner} 關聯資料有誤`' }
+      }
+      const service = serviceMap.get(order.service_id)
+      if (!service) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${service} 關聯資料有誤`' }
       }
 
       const review = reviewMap.get(order.id) ?? {}
       const payment = paymentMap.get(order.id) ?? {}
 
-      const location = prepareServiceLocation(freelancer, order.owner, order.service.service_type_id)
-      const serviceData = { ...order.service, city: location.city, area: location.area }
+      const location = prepareServiceLocation(freelancer, owner, service.service_type_id)
+      const serviceData = { ...service, city: location.city, area: location.area }
 
-      const expandedOrder = expandOrder(order, order.owner, pet, serviceData, review, payment)
+      const expandedOrder = expandOrder(order, owner, pet, serviceData, review, payment)
       const { user, ...rest } = expandedOrder
       
       return { owner: user, ...rest }
@@ -719,29 +754,24 @@ async function freelancerExpandOrders(freelancer, orders) {
 
 async function ownerExpandOrders(owner, orders) {
   try {
-    const orderRepo = dataSource.getRepository('Order')
     const petRepo = dataSource.getRepository('Pet')
     const reviewRepo = dataSource.getRepository('Review')
     const paymentRepo = dataSource.getRepository('Payment')
     const freelancerRepo = dataSource.getRepository('Freelancer')
     const userRepo = dataSource.getRepository('User')
+    const serviceRepo = dataSource.getRepository('Service')
 
     const petIds = orders.map(order => order.pet_id)
     const orderIds = orders.map(order => order.id)
     const freelancerIds = orders.map(order => order.freelancer_id)
+    const serviceIds = orders.map(order => order.service_id)
 
-    const [pets, reviews, payments, freelancers, expandedOrders] = await Promise.all([
+    const [pets, reviews, payments, freelancers, services] = await Promise.all([  
       petRepo.findBy({ id: In(petIds) }),
       reviewRepo.findBy({ order_id: In(orderIds) }),
       paymentRepo.findBy({ order_id: In(orderIds) }),
       freelancerRepo.findBy({ id: In(freelancerIds) }),
-      orderRepo
-        .createQueryBuilder('order')
-        .leftJoinAndSelect('order.freelancer', 'freelancer')
-        .leftJoinAndSelect('order.service', 'service')
-        .where('order.id IN (:...ids)', { ids: orderIds })
-        .orderBy('order.service_date', 'DESC')
-        .getMany()
+      serviceRepo.findBy({ id: In(serviceIds) })
     ])
 
     const petMap = new Map(pets.map(pet => [pet.id, pet]))
@@ -755,11 +785,12 @@ async function ownerExpandOrders(owner, orders) {
     const userMap = new Map(users.map(user => [user.id, user]))
     const freelancerMap = new Map(
       freelancers.map(freelancer => [freelancer.id, userMap.get(freelancer.user_id)]))
+    const serviceMap = new Map(services.map(service => [service.id, service]))  
 
-    const data = expandedOrders.map(order => {
+    const data = orders.map(order => {  
       const pet = petMap.get(order.pet_id)
       if (validation.isNotValidObject(pet)) {
-        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${pet} 關聯資料有誤`' }
       }
 
       const freelancer = freelancerMap.get(order.freelancer_id)
@@ -767,11 +798,16 @@ async function ownerExpandOrders(owner, orders) {
         return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${order} 關聯資料有誤`' }
       }
 
+      const service = serviceMap.get(order.service_id)
+      if (!service) {
+        return { statusCode: 500, status: 'failed', message: '伺服器錯誤：`Order ${service} 關聯資料有誤`' }
+      }
+
       const review = reviewMap.get(order.id) ?? {}
       const payment = paymentMap.get(order.id) ?? {}
       
-      const location = prepareServiceLocation(freelancer, owner, order.service.service_type_id)
-      const serviceData = { ...order.service, city: location.city, area: location.area }
+      const location = prepareServiceLocation(freelancer, owner, service.service_type_id)
+      const serviceData = { ...service, city: location.city, area: location.area }
       const expandedOrder = expandOrder(order, freelancer, pet, serviceData, review, payment)
       const { user, ...rest } = expandedOrder
       return { freelancer: user, ...rest }
