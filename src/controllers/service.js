@@ -133,16 +133,34 @@ async function getService(req, res, next) {
     });
 
 
+    // query.andWhere(`
+    //   freelancer.is_weekly_mode = true
+    //   OR freelancer.working_days && :allowedWeekdays
+    //   AND (
+    //     freelancer.final_working_date IS NULL OR
+    //     freelancer.final_working_date >= :start
+    //   )
+    // `, {
+    //   allowedWeekdays,
+    //   start: dateFilter.start,
+    // })
+
     query.andWhere(`
-      freelancer.is_weekly_mode = true
-      OR freelancer.working_days && :allowedWeekdays
+      (
+        freelancer.is_weekly_mode = true
+        OR freelancer.working_days && :allowedWeekdays
+        AND (
+          freelancer.final_working_date IS NULL
+          OR freelancer.final_working_date >= :start
+        )
+      )
       AND (
-        freelancer.final_working_date IS NULL OR
-        freelancer.final_working_date >= :start
+        service.service_type_id = :service_type_id
       )
     `, {
       allowedWeekdays,
       start: dateFilter.start,
+      service_type_id,
     })
 
     
